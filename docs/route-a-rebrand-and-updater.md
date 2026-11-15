@@ -1,7 +1,23 @@
 # Route A：自有更新通道与改名脱包
 
 日期：2026-11-14
-范围：桌面端优先（Windows / macOS / Linux），使用工作代号 **Moyue（墨阅）**。
+范围：桌面端优先（Windows / macOS / Linux），产品名为 **Moyue（墨阅）**。
+
+---
+
+## 0. Owner 决策（2026-11-14）
+
+| 编号 | 决策 | 选择 | 说明 |
+|---|---|---|---|
+| Q1 | 品牌 | **锁定 Moyue 为 beta 正式名** | `app.moyue.reader` / `moyue://` 不再改动；公测前只可改展示文案，不再改身份标识。 |
+| Q2 | 更新签名信任模型 | **CI secret + 受保护 environment + 手动审批** | release secret 只绑定受保护 environment；发布需 owner 手动批准；私钥另做离线加密备份。 |
+| Q3 | 发布物分发 | **beta 用 GitHub Releases；公测前迁移自有域名/对象存储** | 当前 GitHub Releases 可用；公测前完成 R2/S3/MinIO + 自有域名迁移。 |
+
+影响与待办：
+
+- Q1：本文件其余章节按 beta 正式名执行；数据目录 `Readest/` 的兼容保留不变。
+- Q2：CI 签名仍自动，但 secret 从仓库级收窄到 environment 级；需要配置 required reviewers、tag/branch protection、离线备份和轮换 runbook。
+- Q3：GitHub Releases 作为 beta 通道；`updates.moyue.app` / R2/S3/MinIO 迁移在公测前完成，迁移时保持 `latest.json` schema 与签名公钥不变。
 
 ---
 
