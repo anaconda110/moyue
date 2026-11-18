@@ -146,15 +146,28 @@ describe('useClipUrlIngress deep-link routing', () => {
     );
   });
 
-  it.each(['moyue', 'readest'])('accepts the %s://clip custom scheme', async (scheme) => {
+  it('accepts the moyue://clip custom scheme', async () => {
     renderHook(() => useClipUrlIngress());
     await eventDispatcher.dispatch('app-incoming-url', {
-      urls: [`${scheme}://clip?url=${encodeURIComponent('https://example.com/clipped')}`],
+      urls: [`moyue://clip?url=${encodeURIComponent('https://example.com/clipped')}`],
     });
     await Promise.resolve();
     expect(invokeMock).toHaveBeenCalledWith(
       'clip_url',
       expect.objectContaining({ url: 'https://example.com/clipped' }),
     );
+  });
+
+  // The legacy readest://clip scheme was dropped with the Moyue brand cut-over
+  // (Q1=A): nothing in the repo (extension, UI, docs) emits it any more, and no
+  // Moyue build has ever shipped, so no user holds such a link. Pinned here so a
+  // future re-addition has to be a deliberate decision rather than an accident.
+  it('no longer accepts the legacy readest://clip scheme', async () => {
+    renderHook(() => useClipUrlIngress());
+    await eventDispatcher.dispatch('app-incoming-url', {
+      urls: [`readest://clip?url=${encodeURIComponent('https://example.com/clipped')}`],
+    });
+    await Promise.resolve();
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 });
