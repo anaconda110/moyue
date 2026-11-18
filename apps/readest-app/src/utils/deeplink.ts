@@ -37,7 +37,7 @@ const parseReadestUrl = (
 
   let segments: string[];
 
-if (parsed.protocol === `${APP_URL_SCHEME}:` || parsed.protocol === `${LEGACY_URL_SCHEME}:`) {
+  if (parsed.protocol === `${APP_URL_SCHEME}:` || parsed.protocol === `${LEGACY_URL_SCHEME}:`) {
     // Custom-scheme URLs park their first path segment in `host`, not pathname.
     segments = [parsed.host, ...parsed.pathname.split('/')].filter(Boolean);
   } else if (
@@ -73,7 +73,7 @@ export const buildAnnotationWebUrl = ({ bookHash, noteId, cfi }: AnnotationDeepL
  * and direct deeplink scenarios. Markdown export uses the HTTPS form.
  */
 export const buildAnnotationAppUrl = ({ bookHash, noteId, cfi }: AnnotationDeepLink): string => {
-const base = `${APP_URL_SCHEME}://book/${bookHash}/annotation/${noteId}`;
+  const base = `${APP_URL_SCHEME}://book/${bookHash}/annotation/${noteId}`;
   return cfi ? `${base}?cfi=${encodeURIComponent(cfi)}` : base;
 };
 
