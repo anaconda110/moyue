@@ -128,10 +128,7 @@ pub async fn update_book_presence(
 
     activity_builder = activity_builder.assets(assets_builder);
 
-    let button = activity::Button::new(
-        "Read on Moyue",
-        "https://github.com/anaconda110/moyue",
-    );
+    let button = activity::Button::new("Read on Moyue", "https://github.com/anaconda110/moyue");
     activity_builder = activity_builder.buttons(vec![button]);
 
     if let Some(ref mut discord_client) = client.client {
