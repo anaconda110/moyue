@@ -212,8 +212,6 @@ export function useClipUrlIngress() {
       const isClipUrl =
         url.startsWith('moyue://clip?') ||
         url.startsWith('moyue://clip/') ||
-        url.startsWith('readest://clip?') ||
-        url.startsWith('readest://clip/') ||
         /^https:\/\/web\.readest\.com\/clip(?:[/?].*)?$/i.test(url);
       if (isClipUrl) {
         try {

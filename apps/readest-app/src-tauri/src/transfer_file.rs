@@ -132,11 +132,11 @@ fn is_within_app_storage(file_path: &Path, roots: &[PathBuf]) -> bool {
     roots.iter().any(|root| file_path.starts_with(root))
 }
 
-/// A custom data location keeps every file beneath a folder named `Readest`,
-/// which the `**/Readest/**/*` fs capability already grants to the fs plugin.
-/// Match a whole path component so `Readest-agent.plist` stays foreign.
+/// A custom data location keeps every file beneath a folder named `Moyue`,
+/// which the `**/Moyue/**/*` fs capability already grants to the fs plugin.
+/// Match a whole path component so `Moyue-agent.plist` stays foreign.
 fn is_within_data_dir(file_path: &Path) -> bool {
-    file_path.components().any(|c| c.as_os_str() == "Readest")
+    file_path.components().any(|c| c.as_os_str() == "Moyue")
 }
 
 /// Refuse `..` before resolving, so neither traversal nor a symlink can carry
@@ -538,18 +538,18 @@ mod tests {
 
     #[test]
     fn data_dir_authorizes_custom_library_locations() {
-        // Custom data locations always keep their files beneath a `Readest`
+        // Custom data locations always keep their files beneath a `Moyue`
         // folder (#6383): iCloud Drive, Android shared storage, portable Windows.
         for path in [
-            "/Users/x/Library/Mobile Documents/com~apple~CloudDocs/Resources/Readest/Readest/Books/h/book.epub",
-            "/storage/emulated/0/Books/Readest/Readest/Books/h/book.epub",
-            "/Users/x/Apps/Readest-portable/Readest/Books/h/book.epub",
-            "/Users/x/Readest",
+            "/Users/x/Library/Mobile Documents/com~apple~CloudDocs/Resources/Moyue/Books/h/book.epub",
+            "/storage/emulated/0/Books/Moyue/Books/h/book.epub",
+            "/Users/x/Apps/Readest-portable/Moyue/Books/h/book.epub",
+            "/Users/x/Moyue",
         ] {
             assert!(is_within_data_dir(Path::new(path)), "{path}");
         }
         for path in [
-            "/Users/x/Library/LaunchAgents/Readest-agent.plist",
+            "/Users/x/Library/LaunchAgents/Moyue-agent.plist",
             "/Users/x/Apps/Readest-portable/secrets.txt",
             "/Users/x/.ssh/id_rsa",
         ] {
@@ -561,7 +561,7 @@ mod tests {
     #[test]
     fn data_dir_does_not_authorize_escapes_from_a_readest_folder() {
         let temp = std::env::temp_dir().join(format!("readest-data-dir-{}", std::process::id()));
-        let data = temp.join("Readest");
+        let data = temp.join("Moyue");
         let secret = temp.join("secret");
         std::fs::create_dir_all(&data).unwrap();
         std::fs::create_dir_all(&secret).unwrap();
@@ -583,17 +583,17 @@ mod tests {
     #[test]
     fn app_storage_does_not_authorize_brand_names_in_foreign_paths() {
         let roots = [PathBuf::from(
-            "/Users/victim/Library/Application Support/com.bilingify.readest",
+            "/Users/victim/Library/Application Support/app.moyue.reader",
         )];
         for path in [
-            "/Users/victim/Library/LaunchAgents/Readest-agent.plist",
-            "/Users/victim/Documents/com.bilingify.readest-secrets.txt",
-            "/Users/victim/Library/Application Support/com.bilingify.readest-other/file",
+            "/Users/victim/Library/LaunchAgents/Moyue-agent.plist",
+            "/Users/victim/Documents/app.moyue.reader-secrets.txt",
+            "/Users/victim/Library/Application Support/app.moyue.reader-other/file",
         ] {
             assert!(!is_within_app_storage(Path::new(path), &roots));
         }
         assert!(is_within_app_storage(
-            Path::new("/Users/victim/Library/Application Support/com.bilingify.readest/Readest/Books/book.epub"),
+            Path::new("/Users/victim/Library/Application Support/app.moyue.reader/Moyue/Books/book.epub"),
             &roots,
         ));
     }
@@ -627,7 +627,7 @@ mod tests {
         // `..` traversal, whether the path is relative or absolute.
         assert!(has_disallowed_components("foo/../bar"));
         assert!(has_disallowed_components(
-            "/home/user/Readest/../../.ssh/id_rsa"
+            "/home/user/Moyue/../../.ssh/id_rsa"
         ));
     }
 
@@ -637,7 +637,7 @@ mod tests {
         assert!(!has_disallowed_components(
             "/Users/x/Library/Caches/app/book.epub"
         ));
-        assert!(!has_disallowed_components("/Users/x/Readest/Books/h.epub"));
+        assert!(!has_disallowed_components("/Users/x/Moyue/Books/h.epub"));
     }
 
     #[cfg(windows)]

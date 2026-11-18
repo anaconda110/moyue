@@ -19,8 +19,8 @@ const loadModule = async (runId?: string) => {
   return import('@/utils/deeplinkConsume');
 };
 
-const URL_A = 'readest://book/hashA';
-const URL_B = 'readest://book/hashB';
+const URL_A = 'moyue://book/hashA';
+const URL_B = 'moyue://book/hashB';
 
 describe('markLaunchUrl', () => {
   beforeEach(() => {
@@ -79,13 +79,13 @@ describe('markLaunchUrl', () => {
 
   it('bounds the per-scope set', async () => {
     const { markLaunchUrl } = await loadModule('run-1');
-    for (let i = 0; i < 40; i++) markLaunchUrl('book', `readest://book/h${i}`);
+    for (let i = 0; i < 40; i++) markLaunchUrl('book', `moyue://book/h${i}`);
 
     const stored = JSON.parse(localStorage.getItem('book')!) as { urls: string[] };
     expect(stored.urls).toHaveLength(16);
     // Oldest entries fall off first; the newest are the ones a replay could hit.
-    expect(stored.urls[0]).toBe('readest://book/h24');
-    expect(markLaunchUrl('book', 'readest://book/h39')).toBe(false);
+    expect(stored.urls[0]).toBe('moyue://book/h24');
+    expect(markLaunchUrl('book', 'moyue://book/h39')).toBe(false);
   });
 
   it('tracks scopes independently', async () => {

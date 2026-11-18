@@ -16,7 +16,7 @@ describe('parseDeviceLinkDeepLink', () => {
   });
 
   it('parses the custom-scheme link the web page offers', () => {
-    expect(parseDeviceLinkDeepLink('readest://link?code=RQGF-WDCF')).toEqual({
+    expect(parseDeviceLinkDeepLink('moyue://link?code=RQGF-WDCF')).toEqual({
       code: 'RQGF-WDCF',
     });
   });
@@ -30,7 +30,7 @@ describe('parseDeviceLinkDeepLink', () => {
       'https://web.readest.com/linked?code=RQGF-WDCF',
       'https://web.readest.com/o/link?code=RQGF-WDCF',
       'https://example.com/link?code=RQGF-WDCF',
-      'readest://book/abc123',
+      'moyue://book/abc123',
       'not a url',
     ]) {
       expect(parseDeviceLinkDeepLink(url)).toBeNull();

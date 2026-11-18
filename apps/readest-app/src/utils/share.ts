@@ -28,7 +28,7 @@ export const parseShareDeepLink = (url: string): ShareDeepLink | null => {
   } catch {
     return null;
   }
-  if (parsed.protocol === 'moyue:' || parsed.protocol === 'readest:') {
+if (parsed.protocol === 'moyue:' || parsed.protocol === 'readest:') {
     // For moyue://share/{token} the host portion holds the path segment
     // before the slash. Use pathname for the token; url.host == 'share'.
     if (parsed.host !== 'share') return null;

@@ -22,20 +22,20 @@ class SubscriptionReplacementTest {
         // Without the old purchase token Play starts a *second* subscription
         // and bills the user for both the monthly and the yearly plan.
         val result = resolveSubscriptionReplacement(
-            existing = listOf(sub("com.bilingify.readest.monthly.plus")),
-            newProductId = "com.bilingify.readest.yearly.plus",
+            existing = listOf(sub("app.moyue.reader.monthly.plus")),
+            newProductId = "app.moyue.reader.yearly.plus",
         )
 
         val replace = result as SubscriptionReplacement.Replace
-        assertEquals("token-com.bilingify.readest.monthly.plus", replace.purchaseToken)
-        assertEquals("com.bilingify.readest.monthly.plus", replace.oldProductId)
+        assertEquals("token-app.moyue.reader.monthly.plus", replace.purchaseToken)
+        assertEquals("app.moyue.reader.monthly.plus", replace.oldProductId)
     }
 
     @Test
     fun upgradingTierReplacesTheExistingSubscription() {
         val result = resolveSubscriptionReplacement(
-            existing = listOf(sub("com.bilingify.readest.monthly.plus")),
-            newProductId = "com.bilingify.readest.monthly.pro",
+            existing = listOf(sub("app.moyue.reader.monthly.plus")),
+            newProductId = "app.moyue.reader.monthly.pro",
         )
 
         assertTrue(result is SubscriptionReplacement.Replace)
@@ -44,8 +44,8 @@ class SubscriptionReplacementTest {
     @Test
     fun repurchasingTheSameProductIsNotAReplacement() {
         val result = resolveSubscriptionReplacement(
-            existing = listOf(sub("com.bilingify.readest.yearly.pro")),
-            newProductId = "com.bilingify.readest.yearly.pro",
+            existing = listOf(sub("app.moyue.reader.yearly.pro")),
+            newProductId = "app.moyue.reader.yearly.pro",
         )
 
         assertEquals(SubscriptionReplacement.None, result)
@@ -55,7 +55,7 @@ class SubscriptionReplacementTest {
     fun firstSubscriptionIsNotAReplacement() {
         val result = resolveSubscriptionReplacement(
             existing = emptyList(),
-            newProductId = "com.bilingify.readest.yearly.plus",
+            newProductId = "app.moyue.reader.yearly.plus",
         )
 
         assertEquals(SubscriptionReplacement.None, result)
@@ -64,8 +64,8 @@ class SubscriptionReplacementTest {
     @Test
     fun pendingPurchasesAreNotReplaced() {
         val result = resolveSubscriptionReplacement(
-            existing = listOf(sub("com.bilingify.readest.monthly.plus", isPurchased = false)),
-            newProductId = "com.bilingify.readest.yearly.plus",
+            existing = listOf(sub("app.moyue.reader.monthly.plus", isPurchased = false)),
+            newProductId = "app.moyue.reader.yearly.plus",
         )
 
         assertEquals(SubscriptionReplacement.None, result)
@@ -79,7 +79,7 @@ class SubscriptionReplacementTest {
         // the replacement flow exists to prevent.
         val result = resolveSubscriptionReplacement(
             existing = null,
-            newProductId = "com.bilingify.readest.yearly.plus",
+            newProductId = "app.moyue.reader.yearly.plus",
         )
 
         assertEquals(SubscriptionReplacement.Abort, result)
@@ -93,13 +93,13 @@ class SubscriptionReplacementTest {
         // Play, which the client cannot do.
         val result = resolveSubscriptionReplacement(
             existing = listOf(
-                sub("com.bilingify.readest.monthly.plus", purchaseTimeMillis = 1_000L),
-                sub("com.bilingify.readest.monthly.pro", purchaseTimeMillis = 9_000L),
+                sub("app.moyue.reader.monthly.plus", purchaseTimeMillis = 1_000L),
+                sub("app.moyue.reader.monthly.pro", purchaseTimeMillis = 9_000L),
             ),
-            newProductId = "com.bilingify.readest.yearly.pro",
+            newProductId = "app.moyue.reader.yearly.pro",
         )
 
         val replace = result as SubscriptionReplacement.Replace
-        assertEquals("com.bilingify.readest.monthly.pro", replace.oldProductId)
+        assertEquals("app.moyue.reader.monthly.pro", replace.oldProductId)
     }
 }
