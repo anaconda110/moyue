@@ -593,7 +593,9 @@ mod tests {
             assert!(!is_within_app_storage(Path::new(path), &roots));
         }
         assert!(is_within_app_storage(
-            Path::new("/Users/victim/Library/Application Support/app.moyue.reader/Moyue/Books/book.epub"),
+            Path::new(
+                "/Users/victim/Library/Application Support/app.moyue.reader/Moyue/Books/book.epub"
+            ),
             &roots,
         ));
     }
