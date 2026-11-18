@@ -85,10 +85,7 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://*.readest.com"
-        },
-        {
-          "url": "https://github.com/readest/*"
+          "url": "https://github.com/anaconda110/*"
         },
         {
           "url": "https://*.deepl.com"
@@ -173,7 +170,7 @@
             "start",
             "",
             {
-              "validator": "^.*Readest(.*)\\.exe$"
+              "validator": "^.*Moyue(.*)\\.exe$"
             }
           ]
         },
@@ -183,7 +180,7 @@
           "args": [
             "+x",
             {
-              "validator": "^.*Readest(.*)\\.AppImage$"
+              "validator": "^.*Moyue(.*)\\.AppImage$"
             }
           ]
         },
@@ -192,7 +189,7 @@
           "cmd": "setsid",
           "args": [
             {
-              "validator": "^.*Readest(.*)\\.AppImage$"
+              "validator": "^.*Moyue(.*)\\.AppImage$"
             }
           ]
         }

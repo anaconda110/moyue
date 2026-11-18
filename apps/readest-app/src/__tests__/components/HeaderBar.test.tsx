@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import HeaderBar from '@/app/reader/components/HeaderBar';
+import { useNotebookStore } from '@/store/notebookStore';
 
 // jsdom ships no ResizeObserver, and HeaderBar constructs one to track its own
 // width. Same stub pattern as popup-resting-triangle.test.
@@ -78,11 +79,15 @@ vi.mock('@/app/reader/components/SidebarToggler', () => ({
   default: () => <button type='button'>sidebar-toggler</button>,
 }));
 vi.mock('@/app/reader/components/BookmarkToggler', () => ({ default: () => null }));
-vi.mock('@/app/reader/components/NotebookToggler', () => ({ default: () => null }));
+vi.mock('@/app/reader/components/NotebookToggler', () => ({
+  default: () => <button type='button'>notebook-toggler</button>,
+}));
 vi.mock('@/app/reader/components/TranslationToggler', () => ({ default: () => null }));
 vi.mock('@/app/reader/components/ViewMenu', () => ({ default: () => null }));
 vi.mock('@/app/reader/components/SyncInfoDialog', () => ({ default: () => null }));
-vi.mock('@/components/WindowButtons', () => ({ default: () => null }));
+vi.mock('@/components/WindowButtons', () => ({
+  default: () => <div data-testid='window-buttons' />,
+}));
 vi.mock('@/components/Dropdown', () => ({ default: () => null }));
 vi.mock('@/components/ModalPortal', () => ({ default: () => null }));
 
@@ -110,6 +115,7 @@ const renderHeader = () =>
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', MockResizeObserver);
   useEnvMock.mockReturnValue({ envConfig: {}, appService: { isMobile: true } });
+  useNotebookStore.setState({ isNotebookVisible: false, notebookActiveTab: 'notes' });
 });
 
 afterEach(() => {
@@ -146,6 +152,47 @@ describe('HeaderBar sidebar toggle', () => {
     setViewport(1440, 900);
     renderHeader();
     expect(screen.getByText('sidebar-toggler')).toBeTruthy();
+  });
+});
+
+describe('HeaderBar AI toggle', () => {
+  it('shows the AI entry beside the other desktop tools and hides it while the panel is open', () => {
+    useEnvMock.mockReturnValue({ envConfig: {}, appService: { isMobile: false } });
+    setViewport(1440, 900);
+    renderHeader();
+
+    expect(screen.getByRole('button', { name: 'Expand AI panel' })).toBeTruthy();
+
+    act(() => useNotebookStore.getState().setNotebookVisible(true));
+
+    expect(screen.queryByRole('button', { name: 'Expand AI panel' })).toBeNull();
+  });
+});
+
+describe('HeaderBar right tools while the notebook is open', () => {
+  // The notebook header hosts the cluster then (see HeaderRightTools), so the
+  // tools keep their spot at the window's top-right corner instead of sliding
+  // left with the shrunken book area.
+  it('leaves the book header without the right tools on desktop', () => {
+    useEnvMock.mockReturnValue({ envConfig: {}, appService: { isMobile: false } });
+    setViewport(1440, 900);
+    renderHeader();
+    expect(screen.getByTestId('window-buttons')).toBeTruthy();
+
+    act(() => useNotebookStore.getState().setNotebookVisible(true));
+
+    expect(screen.queryByTestId('window-buttons')).toBeNull();
+    expect(screen.queryByText('notebook-toggler')).toBeNull();
+  });
+
+  it('keeps the right tools in the mobile header, behind the fullscreen panel', () => {
+    setViewport(392, 872);
+    renderHeader();
+
+    act(() => useNotebookStore.getState().setNotebookVisible(true));
+
+    expect(screen.getByTestId('window-buttons')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Expand AI panel' })).toBeNull();
   });
 });
 

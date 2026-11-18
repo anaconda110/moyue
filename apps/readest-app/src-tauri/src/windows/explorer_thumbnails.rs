@@ -4,12 +4,12 @@ use winreg::{
     RegKey,
 };
 
-const PROVIDER: &str = "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}";
+const PROVIDER: &str = "{BF9F7432-90CA-42DB-B602-67931B8878DA}";
 const THUMBNAIL_HANDLER: &str = "{e357fccd-a995-4576-b01f-234630154e96}";
 const EXTENSIONS: [&str; 9] = [
     "epub", "mobi", "azw", "azw3", "kf8", "fb2", "cbz", "cbr", "pdf",
 ];
-const PREFERENCE_KEY: &str = r"Software\Readest";
+const PREFERENCE_KEY: &str = r"Software\Moyue";
 const PREFERENCE_VALUE: &str = "ExplorerThumbnails";
 
 pub(super) fn get_explorer_thumbnails_enabled() -> Result<bool, String> {
@@ -58,7 +58,7 @@ fn set_enabled(user: &RegKey, classes: &RegKey, enabled: bool) -> io::Result<()>
         if !dll.is_some_and(|path| Path::new(&path).is_file()) {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
-                "Explorer thumbnails require an installed Readest thumbnail provider. Install or repair Readest using the Windows installer.",
+                "Explorer thumbnails require an installed Moyue thumbnail provider. Install or repair Moyue using the Windows installer.",
             ));
         }
     }
@@ -165,7 +165,7 @@ mod tests {
         fn new() -> Self {
             static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
             let path = format!(
-                r"Software\ReadestThumbnailTests\{}-{}",
+                r"Software\MoyueThumbnailTests\{}-{}",
                 std::process::id(),
                 NEXT_ID.fetch_add(1, Ordering::Relaxed)
             );

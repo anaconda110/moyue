@@ -1000,7 +1000,7 @@ export class NativeAppService extends BaseAppService {
         srcPath,
         fileName: galleryName,
         mimeType,
-        albumName: 'Readest',
+        albumName: 'Moyue',
       });
       if (!res.success) {
         // The plugin returns the MediaStore exception here. Dropping it left an

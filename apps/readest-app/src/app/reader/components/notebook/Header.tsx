@@ -7,19 +7,30 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useResponsiveSize } from '@/hooks/useResponsiveSize';
 
 const NotebookHeader: React.FC<{
+  title?: string;
   isPinned: boolean;
   isFullScreenMobile?: boolean;
+  rightTools?: React.ReactNode;
+  headerRef?: React.RefObject<HTMLDivElement | null>;
   handleClose: () => void;
   handleTogglePin: () => void;
-}> = ({ isPinned, isFullScreenMobile = false, handleClose, handleTogglePin }) => {
+}> = ({
+  title,
+  isPinned,
+  isFullScreenMobile = false,
+  rightTools,
+  headerRef,
+  handleClose,
+  handleTogglePin,
+}) => {
   const _ = useTranslation();
   const iconSize15 = useResponsiveSize(15);
   const iconSize18 = useResponsiveSize(18);
   return (
-    <div className='notebook-header relative flex h-11 items-center px-3' dir='ltr'>
+    <div ref={headerRef} className='notebook-header relative flex h-11 items-center px-3' dir='ltr'>
       <div className='absolute inset-0 z-[-1] flex items-center justify-center space-x-2'>
         <RiQuillPenLine size={iconSize18} />
-        <div className='notebook-title text-sm font-medium'>{_('Notebook')}</div>
+        <div className='notebook-title text-sm font-medium'>{title ?? _('Notebook')}</div>
       </div>
       <div className='flex w-full items-center gap-x-4'>
         <button
@@ -43,6 +54,13 @@ const NotebookHeader: React.FC<{
         >
           {isFullScreenMobile ? <MdClose size={iconSize18} /> : <MdArrowBackIosNew />}
         </button>
+        {/* Hosts the reader header's right cluster while the panel is open, so
+            its buttons keep their spot at the window's top-right corner. pe-1
+            tops the container's px-3 up to the reader bar's pr-4, keeping the
+            cluster at the same distance from the window edge in both hosts. */}
+        {rightTools && (
+          <div className='ms-auto hidden items-center gap-x-4 ps-2 pe-1 sm:flex'>{rightTools}</div>
+        )}
       </div>
     </div>
   );

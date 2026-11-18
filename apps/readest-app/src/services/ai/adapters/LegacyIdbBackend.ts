@@ -2,7 +2,12 @@ import type { BookDoc } from '@/libs/document';
 import { hybridSearch, indexBook as ragIndexBook, isBookIndexed } from '../ragService';
 import { aiStore } from '../storage/aiStore';
 import type { AISettings, ScoredChunk } from '../types';
-import type { BackendIndexOptions, RetrievalBackend } from './retrievalBackend';
+import type {
+  BackendIndexOptions,
+  RetrievalBackend,
+  SearchBookResponse,
+  SearchOptions,
+} from './retrievalBackend';
 
 /**
  * Thin RetrievalBackend façade around the legacy IndexedDB ragService so
@@ -20,6 +25,19 @@ export class LegacyIdbBackend implements RetrievalBackend {
     return isBookIndexed(bookHash);
   }
 
+  async getIndexStats(bookHash: string) {
+    const meta = await aiStore.getMeta(bookHash);
+    if (!meta) return null;
+    return {
+      indexed: meta.totalChunks > 0,
+      status: meta.totalChunks > 0 ? ('indexed' as const) : ('not_indexed' as const),
+      chunkCount: meta.totalChunks,
+      embeddingModel: meta.embeddingModel,
+      embeddingDim: 0,
+      error: null,
+    };
+  }
+
   async indexBook(
     bookDoc: BookDoc,
     bookHash: string,
@@ -30,6 +48,7 @@ export class LegacyIdbBackend implements RetrievalBackend {
       bookHash,
       this.settings,
       options?.onProgress,
+      options?.signal,
     );
   }
 
@@ -37,11 +56,44 @@ export class LegacyIdbBackend implements RetrievalBackend {
     return aiStore.clearBook(bookHash);
   }
 
+  async searchBook(
+    query: string,
+    bookHash: string,
+    options: SearchOptions,
+  ): Promise<SearchBookResponse> {
+    const chunks = await hybridSearch(
+      bookHash,
+      query,
+      this.settings,
+      options.topK,
+      options.spoilerBoundPosition,
+      options.sectionIndex,
+    );
+    return {
+      status: 'ok',
+      results: chunks.map((chunk) => ({
+        id: chunk.id,
+        text: chunk.text,
+        chapterTitle: chunk.chapterTitle || null,
+        sectionIndex: chunk.sectionIndex,
+        pageNumber: chunk.pageNumber,
+        score: chunk.score,
+      })),
+    };
+  }
+
   searchForSystemPrompt(
     query: string,
     bookHash: string,
-    options: { topK: number; spoilerBoundPosition?: number },
+    options: SearchOptions,
   ): Promise<ScoredChunk[]> {
-    return hybridSearch(bookHash, query, this.settings, options.topK, options.spoilerBoundPosition);
+    return hybridSearch(
+      bookHash,
+      query,
+      this.settings,
+      options.topK,
+      options.spoilerBoundPosition,
+      options.sectionIndex,
+    );
   }
 }

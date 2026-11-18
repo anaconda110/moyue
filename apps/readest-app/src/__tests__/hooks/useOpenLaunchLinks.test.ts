@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, renderHook } from '@testing-library/react';
 
 // Defect B (see the pause-investigation report's "unrelated defects" section):
-// a `readest://book/<abs-hash>` deep link arriving while a regular book's
+// a `moyue://book/<abs-hash>` deep link arriving while a regular book's
 // reader is already mounted used to be treated like any other book and
 // dispatched into the reader in place ('open-book-in-reader'), which drives
 // useBooksManager's initViewState down the document-loader path a streaming
@@ -75,10 +75,10 @@ vi.mock('@/store/readerStore', () => {
 import { useOpenLaunchLinks } from '@/hooks/useOpenLaunchLinks';
 import { eventDispatcher } from '@/utils/event';
 
-const urlFor = (hash: string) => `readest://book/${hash}`;
+const urlFor = (hash: string) => `moyue://book/${hash}`;
 const CFI = 'epubcfi(/6/4!/4/2)';
 const annotationUrlFor = (hash: string) =>
-  `readest://book/${hash}/annotation/note1?cfi=${encodeURIComponent(CFI)}`;
+  `moyue://book/${hash}/annotation/note1?cfi=${encodeURIComponent(CFI)}`;
 
 const collectSwitch = () => {
   const switched = vi.fn();
@@ -213,7 +213,7 @@ describe('useOpenLaunchLinks — reader already mounted (annotation link)', () =
     libraryState.setCheckPendingLaunchLink.mockClear();
     renderHook(() => useOpenLaunchLinks());
     await eventDispatcher.dispatch('app-incoming-url', {
-      urls: ['readest://book/missing/annotation/n1'],
+      urls: ['moyue://book/missing/annotation/n1'],
     });
     await new Promise((r) => setTimeout(r, 0));
     expect(libraryState.setCheckPendingLaunchLink).toHaveBeenCalledWith(false);

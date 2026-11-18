@@ -41,7 +41,13 @@ import { useReedyStore } from '../store/reedyStore';
 import { useReedyTurn } from './useReedyTurn';
 import { AgentThread } from './AgentThread';
 import { Composer } from './Composer';
-import { IndexingStatus, type IndexingPhase } from './IndexingStatus';
+import {
+  IndexingStatus,
+  createIndexingProgress,
+  type IndexingPhase,
+  type IndexingProgress,
+} from './IndexingStatus';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface ReedyAssistantProps {
   appService: AppService;
@@ -54,6 +60,23 @@ export interface ReedyAssistantProps {
   userId?: string;
   /** Wired by the notebook to `getView(bookKey)?.goTo(cfi)` on click. */
   onNavigateToCfi?: (cfi: string) => void;
+  /** Prompt queued by the shared AI analysis tabs after indexing completes. */
+  promptRequest?: { id: number; text: string; sectionIndex?: number } | null;
+  onPromptRequestHandled?: (id: number) => void;
+  /** Lets the outer five-tab shell enable analysis actions only when ready. */
+  onIndexingPhaseChange?: (indexed: boolean) => void;
+  /** Keeps the shared analysis/search tabs in sync with Reedy indexing. */
+  onIndexStateChange?: (state: ReedyIndexState) => void;
+  /** Exposes the async index action to the search tab. */
+  onIndexActionChange?: (action: (() => Promise<void>) | null) => void;
+}
+
+export interface ReedyIndexState {
+  indexed: boolean;
+  isLoading: boolean;
+  isIndexing: boolean;
+  progress: IndexingProgress | null;
+  error: string | null;
 }
 
 /**
@@ -73,7 +96,13 @@ export function ReedyAssistant({
   readingContext,
   userId = 'local',
   onNavigateToCfi,
+  promptRequest = null,
+  onPromptRequestHandled,
+  onIndexingPhaseChange,
+  onIndexStateChange,
+  onIndexActionChange,
 }: ReedyAssistantProps) {
+  const _ = useTranslation();
   const models = useMemo(() => createReedyModels(aiSettings), [aiSettings]);
 
   // Lazily open reedy.db on first mount. The promise resolves once and
@@ -262,27 +291,53 @@ export function ReedyAssistant({
 
   // Indexing state — tracked locally to avoid layering yet another store.
   const [indexingPhase, setIndexingPhase] = useState<IndexingPhase>('idle');
-  const [indexProgress, setIndexProgress] = useState<{
-    pct: number;
-    current: number;
-    total: number;
-  } | null>(null);
+  const [isIndexStateLoading, setIsIndexStateLoading] = useState(true);
+  const [indexProgress, setIndexProgress] = useState<IndexingProgress | null>(null);
+  const [indexError, setIndexError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!reedy || !bookHash) return;
     let alive = true;
-    void reedy.db.getBookMeta(bookHash).then((meta) => {
-      if (!alive) return;
-      if (!meta) setIndexingPhase('idle');
-      else if (meta.indexingStatus === 'indexed') setIndexingPhase('indexed');
-      else if (meta.indexingStatus === 'empty_index') setIndexingPhase('empty');
-      else if (meta.indexingStatus === 'failed') setIndexingPhase('failed');
-      else setIndexingPhase('idle');
-    });
+    setIsIndexStateLoading(true);
+    void reedy.db
+      .getBookMeta(bookHash)
+      .then((meta) => {
+        if (!alive) return;
+        setIndexError(null);
+        if (!meta) setIndexingPhase('idle');
+        else if (meta.indexingStatus === 'indexed') setIndexingPhase('indexed');
+        else if (meta.indexingStatus === 'empty_index') setIndexingPhase('empty');
+        else if (meta.indexingStatus === 'failed') {
+          setIndexingPhase('failed');
+          setIndexError(meta.error ?? null);
+        } else setIndexingPhase('idle');
+      })
+      .catch((error) => {
+        if (!alive) return;
+        setIndexingPhase('failed');
+        setIndexError(error instanceof Error ? error.message : String(error));
+      })
+      .finally(() => {
+        if (alive) setIsIndexStateLoading(false);
+      });
     return () => {
       alive = false;
     };
   }, [reedy, bookHash]);
+
+  useEffect(() => {
+    onIndexingPhaseChange?.(indexingPhase === 'indexed');
+  }, [indexingPhase, onIndexingPhaseChange]);
+
+  useEffect(() => {
+    onIndexStateChange?.({
+      indexed: indexingPhase === 'indexed',
+      isLoading: isIndexStateLoading,
+      isIndexing: indexingPhase === 'indexing',
+      progress: indexProgress,
+      error: indexError,
+    });
+  }, [indexError, indexProgress, indexingPhase, isIndexStateLoading, onIndexStateChange]);
 
   // Reset the conversation log when the book or session changes.
   useEffect(() => {
@@ -292,51 +347,71 @@ export function ReedyAssistant({
   const handleIndex = useCallback(async () => {
     if (!reedy) return;
     setIndexingPhase('indexing');
+    setIndexProgress(null);
+    setIndexError(null);
     try {
       await reedy.indexer.indexBook(bookDoc, bookHash, models.embedding, {
         onProgress: (e) => {
-          if (e.phase === 'embedding' && e.total > 0) {
-            setIndexProgress({
-              pct: Math.round((e.current / e.total) * 100),
-              current: e.current,
-              total: e.total,
-            });
-          }
+          setIndexProgress(createIndexingProgress(e));
         },
       });
       const meta = await reedy.db.getBookMeta(bookHash);
-      setIndexingPhase(
-        meta?.indexingStatus === 'empty_index'
-          ? 'empty'
-          : meta?.indexingStatus === 'indexed'
-            ? 'indexed'
-            : 'failed',
-      );
+      if (meta?.indexingStatus === 'empty_index') {
+        setIndexingPhase('empty');
+      } else if (meta?.indexingStatus === 'indexed') {
+        setIndexingPhase('indexed');
+      } else {
+        setIndexingPhase('failed');
+        setIndexError(meta?.error ?? 'Indexing failed before a searchable index was created.');
+      }
     } catch (err) {
       console.error('[Reedy] index failed', err);
+      const message = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+      setIndexError(message || null);
       setIndexingPhase('failed');
     } finally {
       setIndexProgress(null);
     }
   }, [reedy, bookDoc, bookHash, models.embedding]);
 
+  useEffect(() => {
+    onIndexActionChange?.(handleIndex);
+    return () => onIndexActionChange?.(null);
+  }, [handleIndex, onIndexActionChange]);
+
   const handleSend = useCallback(
-    (text: string) => {
+    (text: string, sectionIndex?: number) => {
       if (!runtime) return;
       void send({
         sessionId: bookHash,
         bookHash,
         userMessage: text,
+        sectionIndex,
         toolAllowlist: activeSkill?.toolAllowlist ?? null,
       });
     },
     [runtime, send, bookHash, activeSkill],
   );
 
+  const handledPromptIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      !promptRequest ||
+      indexingPhase !== 'indexed' ||
+      !runtime ||
+      handledPromptIdRef.current === promptRequest.id
+    ) {
+      return;
+    }
+    handledPromptIdRef.current = promptRequest.id;
+    handleSend(promptRequest.text, promptRequest.sectionIndex);
+    onPromptRequestHandled?.(promptRequest.id);
+  }, [handleSend, indexingPhase, onPromptRequestHandled, promptRequest, runtime]);
+
   if (!aiSettings.enabled) {
     return (
       <div className='flex h-full items-center justify-center p-4'>
-        <p className='text-base-content/60 text-sm'>Enable AI in Settings</p>
+        <p className='text-base-content/60 text-sm'>{_('Enable AI in Settings')}</p>
       </div>
     );
   }
@@ -344,7 +419,7 @@ export function ReedyAssistant({
   if (!reedy) {
     return (
       <div className='flex h-full items-center justify-center p-4'>
-        <p className='text-base-content/60 text-sm'>Loading Reedy…</p>
+        <p className='text-base-content/60 text-sm'>{_('Loading Reedy...')}</p>
       </div>
     );
   }
@@ -353,10 +428,8 @@ export function ReedyAssistant({
     return (
       <IndexingStatus
         status={indexingPhase}
-        progressPercent={indexProgress?.pct}
-        chunkProgress={
-          indexProgress ? { current: indexProgress.current, total: indexProgress.total } : undefined
-        }
+        progress={indexProgress ?? undefined}
+        errorMessage={indexError ?? undefined}
         onIndex={handleIndex}
         onReindex={handleIndex}
       />
@@ -372,7 +445,7 @@ export function ReedyAssistant({
           onSourceClick={onNavigateToCfi}
           emptyState={
             <div className='text-base-content/60 px-6 text-center text-sm'>
-              Ask anything about this book.
+              {_('Ask anything about this book.')}
             </div>
           }
         />

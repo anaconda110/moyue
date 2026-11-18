@@ -1,5 +1,12 @@
 {
   "releases": {
+    "0.12.21": {
+      "date": "2026-11-14",
+      "notes": [
+        "Updated to Readest 0.12.20, including the monthly reading calendar, vocabulary tools, page flip and paper curl, sharper PDFs, voice previews, and more sync providers",
+        "Keeps Moyue's own update channel and branding, with the fork's enhanced reading statistics and AI reading workspace"
+      ]
+    },
     "0.12.20": {
       "date": "2026-11-06",
       "notes": [

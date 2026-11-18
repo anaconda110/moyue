@@ -61,7 +61,10 @@ fn open_location<R: Runtime>(
     location: &str,
     opts: OpenOptions,
 ) -> Result<File, String> {
-    let file_path = FilePath::from_str(location).map_err(|e| e.to_string())?;
+    // tauri-plugin-fs 2.5.2: `FilePath: FromStr<Err = Infallible>`, so parsing cannot
+    // fail. The previous `.map_err(|e| e.to_string())?` was dead code and failed
+    // clippy under `-D warnings` (unreachable_code). Behaviour is unchanged.
+    let file_path = FilePath::from_str(location).expect("FilePath::from_str is infallible");
     match &file_path {
         FilePath::Path(path) => {
             ensure_path_allowed(app, &path.to_string_lossy()).map_err(|e| e.to_string())?;

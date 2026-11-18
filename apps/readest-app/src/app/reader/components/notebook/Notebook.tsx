@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useSettingsStore } from '@/store/settingsStore';
 import { useBookDataStore, useBookData, useBookConfig } from '@/store/bookDataStore';
@@ -26,13 +26,18 @@ import {
 } from '../../hooks/useNotebookDocumentCoordinator';
 import AIAssistant from './AIAssistant';
 import NotebookHeader from './Header';
+import HeaderRightTools from '../HeaderRightTools';
 import NotebookEditor from './NotebookEditor';
 import NotebookTabNavigation from './NotebookTabNavigation';
 
 const MIN_NOTEBOOK_WIDTH = 0.15;
 const MAX_NOTEBOOK_WIDTH = 0.45;
 
-const Notebook: React.FC = () => {
+interface NotebookProps {
+  onCloseBook: (bookKey: string) => void;
+}
+
+const Notebook: React.FC<NotebookProps> = ({ onCloseBook }) => {
   const _ = useTranslation();
   const { envConfig, appService } = useEnv();
   const { settings } = useSettingsStore();
@@ -64,6 +69,7 @@ const Notebook: React.FC = () => {
   const isMobile =
     appService?.isMobile === true || window.innerWidth < 640 || window.innerHeight < 640;
   const [isFullHeightInMobile, setIsFullHeightInMobile] = useState(isMobile);
+  const notebookHeaderRef = useRef<HTMLDivElement>(null);
 
   const hideNotebook = useCallback(() => {
     if (sideBarBookKey) void flushNotebookDocument(sideBarBookKey);
@@ -185,8 +191,9 @@ const Notebook: React.FC = () => {
   const viewSettings = getViewSettings(sideBarBookKey);
   if (!bookData?.bookDoc) return null;
   const languageDir = getBookDirFromLanguage(bookData.bookDoc.metadata.language);
+  if (!isNotebookVisible) return null;
 
-  return isNotebookVisible ? (
+  return (
     <>
       {!isNotebookPinned && (
         <Overlay
@@ -196,6 +203,7 @@ const Notebook: React.FC = () => {
       )}
       <div
         ref={notebookRef}
+        id='notebook-panel'
         className={clsx(
           'notebook-container right-0 flex min-w-60 select-none flex-col',
           'full-height font-sans text-base font-normal transition-[padding-top] duration-300 sm:text-sm',
@@ -261,15 +269,32 @@ const Notebook: React.FC = () => {
             </div>
           )}
           <NotebookHeader
+            title={notebookActiveTab === 'ai' ? _('AI Analysis') : undefined}
             isPinned={isNotebookPinned}
             isFullScreenMobile={isMobile && isFullHeightInMobile}
+            headerRef={notebookHeaderRef}
+            rightTools={
+              !isMobile ? (
+                <HeaderRightTools
+                  bookKey={sideBarBookKey}
+                  headerRef={notebookHeaderRef}
+                  onCloseBook={onCloseBook}
+                />
+              ) : undefined
+            }
             handleClose={hideNotebook}
             handleTogglePin={handleTogglePin}
           />
         </div>
         {notebookActiveTab === 'ai' ? (
           <div className='flex min-h-0 flex-1 flex-col'>
-            <AIAssistant key={activeConversationId ?? 'new'} bookKey={sideBarBookKey} />
+            <AIAssistant
+              key={activeConversationId ?? 'new'}
+              bookKey={sideBarBookKey}
+              excerpts={excerptNotes}
+              handleOpenAnnotations={handleOpenAnnotations}
+              onDeleteExcerpt={handleDeleteExcerpt}
+            />
           </div>
         ) : (
           <NotebookEditor
@@ -279,15 +304,17 @@ const Notebook: React.FC = () => {
             onDeleteExcerpt={handleDeleteExcerpt}
           />
         )}
-        <div
-          className='shrink-0'
-          style={{ paddingBottom: `${(safeAreaInsets?.bottom || 0) / 2}px` }}
-        >
-          <NotebookTabNavigation activeTab={notebookActiveTab} onTabChange={handleTabChange} />
-        </div>
+        {notebookActiveTab !== 'ai' && (
+          <div
+            className='shrink-0'
+            style={{ paddingBottom: `${(safeAreaInsets?.bottom || 0) / 2}px` }}
+          >
+            <NotebookTabNavigation activeTab={notebookActiveTab} onTabChange={handleTabChange} />
+          </div>
+        )}
       </div>
     </>
-  ) : null;
+  );
 };
 
 export default Notebook;

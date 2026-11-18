@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Readest",
-  "mainBinaryName": "readest",
-  "identifier": "com.bilingify.readest",
+  "productName": "Moyue",
+  "mainBinaryName": "moyue",
+  "identifier": "app.moyue.reader",
   "version": "../package.json",
   "build": {
     "frontendDist": "../out",
@@ -16,11 +16,11 @@
       "capabilities": ["default", "desktop-capability"],
       "csp": {
         "default-src": "'self' 'unsafe-inline' blob: data: customprotocol: asset: http://asset.localhost http://rangefile.localhost ipc: http://ipc.localhost",
-        "connect-src": "'self' blob: data: asset: http://asset.localhost http://rangefile.localhost ipc: http://ipc.localhost http://*:* https://*:* https://*.sentry.io https://*.posthog.com https://*.deepl.com https://*.wikipedia.org https://*.wiktionary.org https://*.supabase.co https://*.readest.com wss://api.msedgeservices.com https://*.cloudflarestorage.com https://translate.googleapis.com https://translate.toil.cc https://*.microsofttranslator.com https://edge.microsoft.com https://*.googleusercontent.com https://graph.microsoft.com https://login.microsoftonline.com",
+        "connect-src": "'self' blob: data: asset: http://asset.localhost http://rangefile.localhost ipc: http://ipc.localhost http://*:* https://*:* https://*.sentry.io https://*.posthog.com https://*.deepl.com https://*.wikipedia.org https://*.wiktionary.org https://*.supabase.co wss://api.msedgeservices.com https://*.cloudflarestorage.com https://translate.googleapis.com https://translate.toil.cc https://*.microsofttranslator.com https://edge.microsoft.com https://*.googleusercontent.com https://graph.microsoft.com https://login.microsoftonline.com",
         "img-src": "'self' blob: data: asset: http://asset.localhost https://* https://*:* http://* http://*:*",
         "media-src": "'self' blob: data: asset: http://asset.localhost https://* https://*:* http://* http://*:*",
-        "style-src": "'self' 'unsafe-inline' blob: asset: http://asset.localhost https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com https://storage.readest.com",
-        "font-src": "'self' blob: data: asset: http://asset.localhost tauri: https://db.onlinewebfonts.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdnjs.cloudflare.com  https://storage.readest.com",
+        "style-src": "'self' 'unsafe-inline' blob: asset: http://asset.localhost https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+        "font-src": "'self' blob: data: asset: http://asset.localhost tauri: https://db.onlinewebfonts.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdnjs.cloudflare.com  ",
         "frame-src": "'self' blob: asset: http://asset.localhost https://*.stripe.com",
         "script-src": "'self' 'unsafe-inline' 'unsafe-eval' data: blob: asset: http://asset.localhost https://*.sentry.io https://*.posthog.com  https://*.stripe.com"
       },
@@ -96,7 +96,6 @@
       "minSdkVersion": 26
     },
     "iOS": {
-      "developmentTeam": "J5W48D69VR",
       "infoPlist": "./Info-ios.plist",
       "minimumSystemVersion": "16.4"
     },
@@ -140,7 +139,7 @@
       {
         "name": "FB2 Document",
         "ext": ["fb2"],
-        "contentTypes": ["com.readest.fb2"],
+        "contentTypes": ["app.moyue.fb2"],
         "description": "FB2 file",
         "mimeType": "application/x-fictionbook+xml",
         "role": "Viewer",
@@ -149,7 +148,7 @@
       {
         "name": "CBZ Archive",
         "ext": ["cbz"],
-        "contentTypes": ["com.readest.cbz"],
+        "contentTypes": ["app.moyue.cbz"],
         "description": "CBZ file",
         "mimeType": "application/vnd.comicbook+zip",
         "role": "Viewer",
@@ -183,11 +182,11 @@
         "rank": "Alternate"
       },
       {
-        "name": "Readest Book Package",
+        "name": "Moyue Book Package",
         "ext": ["rbooks"],
-        "contentTypes": ["com.readest.books"],
-        "description": "Readest Book Package",
-        "mimeType": "application/x-readest-books",
+        "contentTypes": ["app.moyue.books"],
+        "description": "Moyue Book Package",
+        "mimeType": "application/x-moyue-books",
         "role": "Viewer",
         "rank": "Owner"
       }
@@ -199,7 +198,7 @@
       "requireLiteralLeadingDot": false
     },
     "cli": {
-      "description": "Readest CLI",
+      "description": "Moyue CLI",
       "args": [
         {
           "name": "file1",
@@ -226,16 +225,11 @@
     "deep-link": {
       "mobile": [
         {
-          "scheme": ["https"],
-          "host": "web.readest.com",
-          "appLink": true
-        },
-        {
-          "scheme": ["readest"],
+          "scheme": ["moyue"],
           "appLink": false
         },
         {
-          "scheme": ["readest-onedrive"],
+          "scheme": ["moyue-onedrive"],
           "appLink": false
         },
         {
@@ -245,18 +239,15 @@
       ],
       "desktop": {
         "schemes": [
-          "readest",
-          "readest-onedrive",
+          "moyue",
+          "moyue-onedrive",
           "com.googleusercontent.apps.209390247301-ctpmep68ppfa56r1b8tr35e4qi4p60kq"
         ]
       }
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFMEQ1QjE2OEU1NEIzNTEKUldSUnMxU09GbHNOdmpEaWFMT1crRFpEV2VORzQ2MklxaFc0M1R0ci9xY2c1bENXS0xhM1R1L2sK",
-      "endpoints": [
-        "https://download.readest.com/releases/latest.json",
-        "https://github.com/readest/readest/releases/latest/download/latest.json"
-      ]
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcwNjZBMDQ4MEY3NUJGNDMKUldSRHYzVVBTS0JtY0ZZcWlZVHY2RG1WeTFrRGRjcFpHd2EwT0REQU9QQTkwVmh5cmt4TUJ3SUIK",
+      "endpoints": ["https://github.com/anaconda110/moyue/releases/latest/download/latest.json"]
     },
     "webview-upgrade": {
       "minUpgradeMajor": 121,

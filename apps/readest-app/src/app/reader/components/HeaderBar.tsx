@@ -1,14 +1,14 @@
 import clsx from 'clsx';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { VscLibrary } from 'react-icons/vsc';
-import { MdOutlineMenu } from 'react-icons/md';
 
 import { Insets } from '@/types/misc';
 import { useEnv } from '@/context/EnvContext';
 import { useThemeStore } from '@/store/themeStore';
 import { useReaderStore } from '@/store/readerStore';
-import { useBookData, useBookDataStore } from '@/store/bookDataStore';
+import { useBookData } from '@/store/bookDataStore';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { useNotebookStore } from '@/store/notebookStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useTrafficLightStore } from '@/store/trafficLightStore';
@@ -25,16 +25,12 @@ import { getBookDataAttributes } from '@/utils/book';
 import { isForcedMobileLayout } from '../utils/mobileLayout';
 import { HighlighterIcon } from '@/components/HighlighterIcon';
 import Dropdown from '@/components/Dropdown';
-import ModalPortal from '@/components/ModalPortal';
-import WindowButtons from '@/components/WindowButtons';
 import QuickActionMenu from './annotator/QuickActionMenu';
 import SidebarToggler from './SidebarToggler';
 import BookmarkToggler from './BookmarkToggler';
-import NotebookToggler from './NotebookToggler';
+import HeaderRightTools from './HeaderRightTools';
 import TranslationToggler from './TranslationToggler';
 import DuoBookModeToggler from './DuoBookModeToggler';
-import ViewMenu from './ViewMenu';
-import SyncInfoDialog from './SyncInfoDialog';
 
 interface HeaderBarProps {
   bookKey: string;
@@ -65,31 +61,15 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
   const headerRef = useRef<HTMLDivElement>(null);
   const { isTrafficLightVisible } = useTrafficLight(headerRef);
   const { trafficLightInFullscreen, setTrafficLightVisibility } = useTrafficLightStore();
-  const { bookKeys, hoveredBookKey } = useReaderStore();
+  const { hoveredBookKey } = useReaderStore();
   const { isDarkMode, systemUIVisible, statusBarHeight, isIPhoneDuo } = useThemeStore();
   const { isSideBarVisible, getIsSideBarVisible } = useSidebarStore();
+  const { isNotebookVisible } = useNotebookStore();
   const { getView, getViewSettings, setHoveredBookKey } = useReaderStore();
   const viewSettings = getViewSettings(bookKey);
   const bookData = useBookData(bookKey);
-  // Readest Cloud's per-book stamps. Includes the PUSH stamps so this agrees
-  // with the View menu's sync row, which has always counted them — otherwise
-  // the row could read "Synced 2 minutes ago" while this dialog said "Never
-  // synced" for the same book. Selected as one number: the config itself
-  // changes on every progress save (updatedAt), which the header doesn't show.
-  const nativeLastSyncedAt = useBookDataStore((s) => {
-    const bookConfig = s.getConfig(bookKey);
-    return (
-      Math.max(
-        bookConfig?.lastSyncedAtConfig || 0,
-        bookConfig?.lastSyncedAtNotes || 0,
-        bookConfig?.lastPushedAtConfig || 0,
-        bookConfig?.lastPushedAtNotes || 0,
-      ) || undefined
-    );
-  });
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMetaHashDialogOpen, setIsMetaHashDialogOpen] = useState(false);
   const [headerWidth, setHeaderWidth] = useState(0);
   const view = getView(bookKey);
   const iconSize18 = useResponsiveSize(18);
@@ -354,43 +334,18 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
         </div>
 
         <div className='header-tools-end bg-base-100 z-20 ms-auto flex h-full min-w-max items-center gap-x-4 ps-2 max-[350px]:gap-x-2'>
-          <NotebookToggler bookKey={bookKey} />
-          <Dropdown
-            label={_('View Options')}
-            containerClassName='h-8'
-            className='exclude-title-bar-mousedown dropdown-bottom dropdown-end'
-            buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0 mt-0'
-            toggleButton={<MdOutlineMenu />}
-            onToggle={handleToggleDropdown}
-          >
-            <ViewMenu
+          {/* While the notebook panel is open on desktop its header hosts this
+              cluster instead, so the tools — the window's close button with
+              them — keep their place at the window's top-right corner rather
+              than sliding left with the shrunken book area. */}
+          {!(isNotebookVisible && !isMobile) && (
+            <HeaderRightTools
               bookKey={bookKey}
-              onShowMetaHashDialog={() => setIsMetaHashDialogOpen(true)}
+              showAIToggler={!isNotebookVisible}
+              onCloseBook={onCloseBook}
+              onDropdownOpenChange={onDropdownOpenChange}
             />
-          </Dropdown>
-          {isMetaHashDialogOpen && (
-            <ModalPortal showOverlay={false}>
-              <SyncInfoDialog
-                isOpen={isMetaHashDialogOpen}
-                bookKey={bookKey}
-                metadata={bookData?.bookDoc?.metadata ?? bookData?.book?.metadata}
-                storedMetaHash={bookData?.book?.metaHash}
-                nativeLastSyncedAt={nativeLastSyncedAt}
-                onClose={() => setIsMetaHashDialogOpen(false)}
-              />
-            </ModalPortal>
           )}
-          <WindowButtons
-            className='window-buttons flex items-center'
-            headerRef={headerRef}
-            showMinimize={bookKeys.length == 1 && windowButtonVisible}
-            showMaximize={bookKeys.length == 1 && windowButtonVisible}
-            closeButtonLabel={_('Close Book')}
-            onClose={() => {
-              setHoveredBookKey(null);
-              onCloseBook(bookKey);
-            }}
-          />
         </div>
       </div>
     </div>

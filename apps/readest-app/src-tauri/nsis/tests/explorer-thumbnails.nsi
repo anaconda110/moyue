@@ -2,7 +2,7 @@
 ; Tests the actual installer hooks, not a copy of their registration logic.
 Unicode true
 Target amd64-unicode
-Name "Readest Explorer registration tests"
+Name "Moyue Explorer registration tests"
 OutFile "explorer-thumbnails-test.exe"
 RequestExecutionLevel user
 SilentInstall silent
@@ -20,7 +20,7 @@ SilentInstall silent
 
 !macro CHECK_EXTENSION EXT
     !insertmacro ASSERT_VALUE HKCR "${EXT}\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "" "${EXT}: thumbnails must be off by default"
-    !insertmacro ASSERT_VALUE HKCR "${EXT}\ShellEx\${SHELL_PREVIEW_HANDLER}" "" "${CLSID_READEST_THUMBNAIL}" "${EXT}: previews must remain registered"
+    !insertmacro ASSERT_VALUE HKCR "${EXT}\ShellEx\${SHELL_PREVIEW_HANDLER}" "" "${CLSID_MOYUE_THUMBNAIL}" "${EXT}: previews must remain registered"
 !macroend
 
 Section
@@ -28,7 +28,7 @@ Section
     SetShellVarContext current
     StrCpy $INSTDIR "$TEMP\readest-explorer-registration-test"
     FileOpen $8 "$EXEDIR\explorer-thumbnails-test.log" w
-    DeleteRegValue HKCU "Software\Readest" "ExplorerThumbnails"
+    DeleteRegValue HKCU "Software\Moyue" "ExplorerThumbnails"
 
     ; A provider registered under a ProgID rather than directly on the extension.
     WriteRegStr HKCR ".epub" "" "Other.Epub"
@@ -46,8 +46,8 @@ Section
     !insertmacro ASSERT_VALUE HKCR "Other.Epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "other-provider" "ProgID provider preserved"
 
     FileWrite $8 "PASS: fresh install$\r$\n"
-    ; Upgrade: remove only legacy Readest registrations, in either install scope.
-    WriteRegStr HKCR ".epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_READEST_THUMBNAIL}"
+    ; Upgrade: remove only legacy Moyue registrations, in either install scope.
+    WriteRegStr HKCR ".epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_MOYUE_THUMBNAIL}"
     WriteRegStr HKCR ".epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "Unrelated" "keep-value"
     WriteRegStr HKCR ".epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}\Unrelated" "" "keep-subkey"
     WriteRegStr HKCR ".pdf\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "third-party-thumbnail"
@@ -57,7 +57,7 @@ Section
     !insertmacro ASSERT_VALUE HKCR ".pdf\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "third-party-thumbnail" "third-party thumbnail preserved on upgrade"
     !insertmacro ASSERT_VALUE HKCR ".pdf\ShellEx\${SHELL_PREVIEW_HANDLER}" "" "third-party-preview" "third-party preview preserved on upgrade"
     SetShellVarContext all
-    WriteRegStr HKLM "Software\Classes\.mobi\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_READEST_THUMBNAIL}"
+    WriteRegStr HKLM "Software\Classes\.mobi\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_MOYUE_THUMBNAIL}"
     !insertmacro NSIS_HOOK_POSTINSTALL
     !insertmacro ASSERT_VALUE HKLM "Software\Classes\.mobi\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "" "machine legacy registration removed"
 
@@ -65,24 +65,24 @@ Section
     !insertmacro ASSERT_VALUE HKCR ".epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}\Unrelated" "" "keep-subkey" "upgrade preserves unrelated subkeys"
     FileWrite $8 "PASS: upgrade$\r$\n"
     ; Explicit preference survives reinstall and never overwrites another handler.
-    WriteRegDWORD HKCU "Software\Readest" "ExplorerThumbnails" 1
+    WriteRegDWORD HKCU "Software\Moyue" "ExplorerThumbnails" 1
     !insertmacro NSIS_HOOK_POSTINSTALL
-    !insertmacro ASSERT_VALUE HKCU "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_READEST_THUMBNAIL}" "opt-in enables user thumbnails"
+    !insertmacro ASSERT_VALUE HKCU "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_MOYUE_THUMBNAIL}" "opt-in enables user thumbnails"
     !insertmacro ASSERT_VALUE HKCR ".pdf\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "third-party-thumbnail" "opt-in preserves another provider"
     !insertmacro NSIS_HOOK_POSTINSTALL
-    !insertmacro ASSERT_VALUE HKCU "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_READEST_THUMBNAIL}" "opt-in survives reinstall"
+    !insertmacro ASSERT_VALUE HKCU "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_MOYUE_THUMBNAIL}" "opt-in survives reinstall"
 
     ; Disable persists across updates, including removal of per-user opt-in slots.
-    WriteRegDWORD HKCU "Software\Readest" "ExplorerThumbnails" 0
+    WriteRegDWORD HKCU "Software\Moyue" "ExplorerThumbnails" 0
     ; An old machine registration can be hidden underneath the per-user opt-in.
-    WriteRegStr HKLM "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_READEST_THUMBNAIL}"
+    WriteRegStr HKLM "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "${CLSID_MOYUE_THUMBNAIL}"
     !insertmacro NSIS_HOOK_POSTINSTALL
     !insertmacro ASSERT_VALUE HKLM "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "" "upgrade removes hidden legacy machine slot"
     !insertmacro CHECK_EXTENSION ".epub"
     !insertmacro ASSERT_VALUE HKCR ".pdf\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "" "third-party-thumbnail" "opt-out preserves another provider"
 
     ; Uninstall also removes an opted-in per-user slot for a machine install.
-    WriteRegDWORD HKCU "Software\Readest" "ExplorerThumbnails" 1
+    WriteRegDWORD HKCU "Software\Moyue" "ExplorerThumbnails" 1
     !insertmacro NSIS_HOOK_POSTINSTALL
     WriteRegStr HKCU "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}" "UserMetadata" "keep-user-value"
     WriteRegStr HKCU "Software\Classes\.epub\ShellEx\${SHELL_THUMBNAIL_HANDLER}\UserMetadata" "" "keep-user-subkey"

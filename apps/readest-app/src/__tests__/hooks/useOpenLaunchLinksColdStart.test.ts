@@ -4,7 +4,7 @@ import { cleanup, renderHook } from '@testing-library/react';
 
 // #6104: tauri-plugin-deep-link keeps the launch URL in PROCESS-global state for
 // the whole app session — macOS's `RunEvent::Opened` replaces it and nothing ever
-// clears it — so getCurrent() keeps handing back `readest://book/<hash>` long
+// clears it — so getCurrent() keeps handing back `moyue://book/<hash>` long
 // after that book was opened. Both JS consume-once guards (the module-scoped
 // `coldStartConsumed` flag and the `consumedColdStartBookUrl` sessionStorage key)
 // are per-webview, and `openBookInNewWindow` defaults to true on desktop, so
@@ -94,7 +94,7 @@ const runColdStart = async (label: string, pathname: string) => {
 
 describe('useOpenLaunchLinks — cold-start deep link ownership (#6104)', () => {
   beforeEach(() => {
-    coldStartUrls = ['readest://book/linkedBook'];
+    coldStartUrls = ['moyue://book/linkedBook'];
     navigateToReaderMock.mockReset();
     routerPushMock.mockReset();
     sessionStorage.clear();
@@ -125,7 +125,7 @@ describe('useOpenLaunchLinks — cold-start deep link ownership (#6104)', () => 
 // or a normal launch (no widget tap) leaves the Library permanently blank.
 describe('useOpenLaunchLinks — releases the Library page blank-placeholder gate', () => {
   beforeEach(() => {
-    coldStartUrls = ['readest://book/linkedBook'];
+    coldStartUrls = ['moyue://book/linkedBook'];
     navigateToReaderMock.mockReset();
     routerPushMock.mockReset();
     libraryState.setCheckPendingLaunchLink.mockReset();
@@ -146,7 +146,7 @@ describe('useOpenLaunchLinks — releases the Library page blank-placeholder gat
     const { useOpenLaunchLinks, eventDispatcher } = await loadHook();
     renderHook(() => useOpenLaunchLinks());
 
-    await eventDispatcher.dispatch('app-incoming-url', { urls: ['readest://book/linkedBook'] });
+    await eventDispatcher.dispatch('app-incoming-url', { urls: ['moyue://book/linkedBook'] });
     await flush();
 
     expect(libraryState.setCheckPendingLaunchLink).not.toHaveBeenCalled();
@@ -186,11 +186,11 @@ describe('useOpenLaunchLinks — releases the Library page blank-placeholder gat
 // whatever URL the plugin last stored. The consume marker has to survive that
 // reload, remember every URL the run acted on (a single last-seen stamp lets a
 // replayed A through once B has been opened), and never touch live deliveries:
-// re-tapping the same `readest://book/<hash>` bookmark is the reporter's whole
+// re-tapping the same `moyue://book/<hash>` bookmark is the reporter's whole
 // workflow.
 describe('useOpenLaunchLinks — launch URL replayed after a reload (#6104)', () => {
-  const URL_A = 'readest://book/linkedBook';
-  const URL_B = 'readest://book/clickedBook';
+  const URL_A = 'moyue://book/linkedBook';
+  const URL_B = 'moyue://book/clickedBook';
 
   // Boot a document on `/library` with getCurrent() reporting `urls`, and
   // return the eventDispatcher so a live delivery can follow.
@@ -279,7 +279,7 @@ describe('useOpenLaunchLinks — launch URL replayed after a reload (#6104)', ()
   });
 
   it('does not arm read-aloud for a replayed launch URL', async () => {
-    const URL_AUTOPLAY = 'readest://book/linkedBook?autoplay=tts';
+    const URL_AUTOPLAY = 'moyue://book/linkedBook?autoplay=tts';
     await bootDocument([URL_AUTOPLAY]);
     await bootDocument([URL_AUTOPLAY]);
     const { consumePendingTTSAutoplay } = await import('@/utils/ttsAutoplay');
@@ -287,8 +287,8 @@ describe('useOpenLaunchLinks — launch URL replayed after a reload (#6104)', ()
   });
 });
 
-const groupUrl = 'readest://widget-group/series/a1b2%20c3';
-const editShelfUrl = 'readest://widget-edit-shelf/sf';
+const groupUrl = 'moyue://widget-group/series/a1b2%20c3';
+const editShelfUrl = 'moyue://widget-edit-shelf/sf';
 
 const mountWidget = async (label = 'main') => {
   currentWindowLabel = label;
@@ -355,12 +355,12 @@ describe('useOpenLaunchLinks — widget links', () => {
   it.each([
     [
       'a group link with an unknown axis',
-      ['readest://widget-group/none/x', 'readest://widget-group/bogus/x'],
+      ['moyue://widget-group/none/x', 'moyue://widget-group/bogus/x'],
     ],
-    ['a malformed edit-shelf link', ['readest://widget-edit-shelf/']],
+    ['a malformed edit-shelf link', ['moyue://widget-edit-shelf/']],
     [
       'links that are not widget links',
-      ['readest://book/abc', 'https://web.readest.com/o/widget-group/series/x'],
+      ['moyue://book/abc', 'https://web.readest.com/o/widget-group/series/x'],
     ],
   ])('ignores %s', async (_label, urls) => {
     coldStartUrls = urls;
