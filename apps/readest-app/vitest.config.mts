@@ -43,6 +43,20 @@ export default defineConfig({
     // Match PR CI's budget: more workers can push CPU-heavy tests past 5s
     // on shared machines (#7239). Override with --maxWorkers when needed.
     maxWorkers: 4,
+    // File-scoped retry: `ControlPanelUpdateReset.test.tsx` is a CPU-heavy
+    // jsdom/`act()` component test that intermittently exceeds the default
+    // 5s timeout under load (a full pre-push run is ~350s across 16k tests),
+    // producing a load-induced flake — NOT a product bug. Retry only this
+    // file so the pre-push hook is reliable enough that it doesn't get
+    // bypassed wholesale. Scoped (not global) so genuinely-broken tests
+    // elsewhere still fail on first attempt and aren't masked.
+    // Gate-authorized dev-infra fix (#flaky-hook, @Tenny); validate via full
+    // `vitest` run on a node-capable seat.
+    fileOptions: {
+      '**/__tests__/components/settings/ControlPanelUpdateReset.test.tsx': {
+        retry: 2,
+      },
+    },
     // Worker threads start a test file faster than forked processes: the
     // full suite ran in 296 s against 324 s with forks.
     pool: 'threads',
