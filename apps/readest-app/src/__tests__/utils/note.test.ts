@@ -557,7 +557,7 @@ describe('renderNoteTemplate', () => {
             {
               text: 'quote',
               webLink: 'https://web.readest.com/o/book/abc/annotation/n1',
-              appLink: 'readest://book/abc/annotation/n1',
+              appLink: 'moyue://book/abc/annotation/n1',
               link: 'https://web.readest.com/o/book/abc/annotation/n1',
             },
           ],
@@ -571,10 +571,10 @@ describe('renderNoteTemplate', () => {
       expect(result).toBe('https://web.readest.com/o/book/abc/annotation/n1');
     });
 
-    it('should render annotation.appLink with readest:// scheme', () => {
+    it('should render annotation.appLink with moyue:// scheme', () => {
       const template = '{{ chapters[0].annotations[0].appLink }}';
       const result = renderNoteTemplate(template, linkData);
-      expect(result).toBe('readest://book/abc/annotation/n1');
+      expect(result).toBe('moyue://book/abc/annotation/n1');
     });
 
     it('should still render legacy annotation.link', () => {
@@ -681,7 +681,7 @@ describe('formatBlockQuote', () => {
 });
 
 describe('buildAnnotationCopyMarkdown', () => {
-  const url = 'readest://book/abc/annotation/n1?cfi=/6/4';
+  const url = 'moyue://book/abc/annotation/n1?cfi=/6/4';
 
   it('should build a highlight (text only) with a link line', () => {
     const result = buildAnnotationCopyMarkdown({
@@ -691,7 +691,7 @@ describe('buildAnnotationCopyMarkdown', () => {
       linkLabel: 'Page: 12',
     });
     expect(result).toBe(
-      '> In my younger and more vulnerable years\n\n*[Page: 12](readest://book/abc/annotation/n1?cfi=/6/4)*',
+      '> In my younger and more vulnerable years\n\n*[Page: 12](moyue://book/abc/annotation/n1?cfi=/6/4)*',
     );
   });
 
@@ -704,7 +704,7 @@ describe('buildAnnotationCopyMarkdown', () => {
       linkLabel: 'Page: 12',
     });
     expect(result).toBe(
-      '> quote\n\n**Note**: my thought\n\n*[Page: 12](readest://book/abc/annotation/n1?cfi=/6/4)*',
+      '> quote\n\n**Note**: my thought\n\n*[Page: 12](moyue://book/abc/annotation/n1?cfi=/6/4)*',
     );
   });
 
@@ -716,7 +716,7 @@ describe('buildAnnotationCopyMarkdown', () => {
       linkLabel: 'Open in Readest',
     });
     expect(result).toBe(
-      '> line one\n> line two\n\n*[Open in Readest](readest://book/abc/annotation/n1?cfi=/6/4)*',
+      '> line one\n> line two\n\n*[Open in Readest](moyue://book/abc/annotation/n1?cfi=/6/4)*',
     );
   });
 
@@ -726,7 +726,7 @@ describe('buildAnnotationCopyMarkdown', () => {
       url,
       linkLabel: 'Open in Readest',
     });
-    expect(result).toBe('*[Open in Readest](readest://book/abc/annotation/n1?cfi=/6/4)*');
+    expect(result).toBe('*[Open in Readest](moyue://book/abc/annotation/n1?cfi=/6/4)*');
   });
 
   it('should translate the note label', () => {

@@ -12,7 +12,7 @@ describe('parseRedirect', () => {
   });
 
   test('rejects a URL aimed at a different scheme/path (target guard)', () => {
-    const url = 'readest://auth-callback?code=AUTH_CODE&state=STATE';
+    const url = 'moyue://auth-callback?code=AUTH_CODE&state=STATE';
     expect(() => parseRedirect(url, 'STATE', REDIRECT_URI)).toThrow(/target mismatch/i);
   });
 

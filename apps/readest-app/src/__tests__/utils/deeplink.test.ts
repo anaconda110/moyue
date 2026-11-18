@@ -34,31 +34,31 @@ describe('buildAnnotationUrl', () => {
 
 describe('widget group deep link', () => {
   it('parses a group link into its axis and decoded group id', () => {
-    expect(parseWidgetGroupDeepLink('readest://widget-group/series/a1b2%20c3')).toEqual({
+    expect(parseWidgetGroupDeepLink('moyue://widget-group/series/a1b2%20c3')).toEqual({
       groupBy: 'series',
       groupId: 'a1b2 c3',
     });
-    expect(parseWidgetGroupDeepLink('readest://widget-group/series')).toBeNull();
+    expect(parseWidgetGroupDeepLink('moyue://widget-group/series')).toBeNull();
     // Malformed percent-encoding is rejected, not thrown.
-    expect(parseWidgetGroupDeepLink('readest://widget-group/series/a%')).toBeNull();
+    expect(parseWidgetGroupDeepLink('moyue://widget-group/series/a%')).toBeNull();
   });
 
-  it('only accepts the readest:// scheme, never the web host', () => {
+  it('only accepts the moyue:// scheme, never the web host', () => {
     expect(parseWidgetGroupDeepLink('https://web.readest.com/o/widget-group/series/x')).toBeNull();
   });
 });
 
 describe('widget edit-shelf deep link', () => {
   it('parses the decoded shelf id', () => {
-    expect(parseWidgetEditShelfDeepLink('readest://widget-edit-shelf/a1b2%20c3')).toEqual({
+    expect(parseWidgetEditShelfDeepLink('moyue://widget-edit-shelf/a1b2%20c3')).toEqual({
       shelfId: 'a1b2 c3',
     });
-    expect(parseWidgetEditShelfDeepLink('readest://widget-edit-shelf/')).toBeNull();
+    expect(parseWidgetEditShelfDeepLink('moyue://widget-edit-shelf/')).toBeNull();
     // Malformed percent-encoding is rejected, not thrown.
-    expect(parseWidgetEditShelfDeepLink('readest://widget-edit-shelf/a%')).toBeNull();
+    expect(parseWidgetEditShelfDeepLink('moyue://widget-edit-shelf/a%')).toBeNull();
   });
 
-  it('only accepts the readest:// scheme, never the web host', () => {
+  it('only accepts the moyue:// scheme, never the web host', () => {
     expect(
       parseWidgetEditShelfDeepLink('https://web.readest.com/o/widget-edit-shelf/x'),
     ).toBeNull();

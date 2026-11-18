@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, renderHook } from '@testing-library/react';
 
 // A CrossPoint reader's sign-in link opens in the app (Universal Link / App
-// Link, or readest://link from the web page) and lands on the app's /link
+// Link, or moyue://link from the web page) and lands on the app's /link
 // page, where the account the app is signed in to approves the code.
 
 let currentWindowLabel = 'main';
@@ -62,7 +62,7 @@ describe('useOpenDeviceLink', () => {
   });
 
   it('opens the /link page for the link that launched the app', async () => {
-    coldStartUrls = ['readest://link?code=RQGF-WDCF'];
+    coldStartUrls = ['moyue://link?code=RQGF-WDCF'];
     const { useOpenDeviceLink } = await loadHook();
     renderHook(() => useOpenDeviceLink());
     await flush();
@@ -70,7 +70,7 @@ describe('useOpenDeviceLink', () => {
   });
 
   it('leaves the launch link to the main window', async () => {
-    coldStartUrls = ['readest://link?code=RQGF-WDCF'];
+    coldStartUrls = ['moyue://link?code=RQGF-WDCF'];
     currentWindowLabel = 'reader-1';
     const { useOpenDeviceLink } = await loadHook();
     renderHook(() => useOpenDeviceLink());
@@ -83,7 +83,7 @@ describe('useOpenDeviceLink', () => {
     renderHook(() => useOpenDeviceLink());
     await flush();
     await eventDispatcher.dispatch('app-incoming-url', {
-      urls: ['https://web.readest.com/s/abc123', 'readest://book/abc123'],
+      urls: ['https://web.readest.com/s/abc123', 'moyue://book/abc123'],
     });
     expect(routerPushMock).not.toHaveBeenCalled();
   });

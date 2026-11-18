@@ -85,9 +85,6 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://*.readest.com"
-        },
-        {
           "url": "https://github.com/anaconda110/*"
         },
         {
