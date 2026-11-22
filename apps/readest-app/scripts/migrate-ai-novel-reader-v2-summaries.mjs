@@ -121,7 +121,7 @@ const navPath =
   '/mnt/c/Users/Tom/AppData/Roaming/com.bilingify.readest/Readest/Books/f15c9d6f422ff89a2aaadfa5fd69eefc/nav.json';
 const outputPath =
   process.argv[4] ||
-  path.join(appDir, 'src/data/aiNovelReaderV2/lingjing-xingzhe-chapters.json');
+  path.join(appDir, '.local', 'ai-novel-reader-v2', `${TARGET.bookHash}.json`);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);

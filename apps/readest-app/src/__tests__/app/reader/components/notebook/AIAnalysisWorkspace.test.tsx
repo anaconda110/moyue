@@ -8,6 +8,10 @@ import { DEFAULT_AI_SETTINGS } from '@/services/ai/constants';
 import type { AIAnalysisReport } from '@/services/ai/types';
 import { useAIAnalysisStore } from '@/store/aiAnalysisStore';
 
+vi.mock('@/context/EnvContext', () => ({
+  useEnv: () => ({ appService: null }),
+}));
+
 vi.mock('@/hooks/useTranslation', () => ({
   useTranslation: () => (value: string, options?: Record<string, number | string>) => {
     if (!options) return value;
@@ -23,11 +27,11 @@ const sectionIndex = 10;
 const report: AIAnalysisReport = {
   id: getAnalysisReportId(bookHash, 'chapter', sectionIndex),
   bookHash,
-  bookTitle: '灵境行者',
+  bookTitle: '合成书',
   kind: 'chapter',
   sectionIndex,
-  chapterTitle: '第1章 礼物',
-  content: '张元清清晨旧疾复发，服药后透露自己患有“大脑过载”的怪病。',
+  chapterTitle: '第1章',
+  content: '第一章摘要',
   model: 'ai-novel-reader-v2 / chapter-summary',
   status: 'complete',
   sources: [],
@@ -51,7 +55,7 @@ const commonProps = {
   bookDoc,
   bookHash,
   bookTitle: report.bookTitle,
-  authorName: '卖报小郎君',
+  authorName: '测试作者',
   sectionIndex,
   chapterTitle: report.chapterTitle ?? null,
   currentPage: 0,
@@ -82,9 +86,7 @@ describe('AIAnalysisWorkspace', () => {
   it('shows a saved imported report while AI generation is disabled', () => {
     renderWorkspace({ [report.id]: report });
 
-    expect(
-      screen.getByText('张元清清晨旧疾复发，服药后透露自己患有“大脑过载”的怪病。'),
-    ).toBeTruthy();
+    expect(screen.getByText('第一章摘要')).toBeTruthy();
     expect(screen.getByText(report.model)).toBeTruthy();
     expect(screen.queryByText('Enable AI in Settings')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Regenerate' })).toBeNull();
