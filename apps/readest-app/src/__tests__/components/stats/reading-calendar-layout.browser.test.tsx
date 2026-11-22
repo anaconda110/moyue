@@ -41,6 +41,16 @@ vi.mock('@/services/statistics/statisticsDb', () => ({
       return {
         getQuarterHourDurations: async () => [{ quarter, seconds: 3600 }],
         getReadingTotals: async () => ({ seconds: 3600, books: 2, pages: 10 }),
+        getReadingTotalsAndDaily: async () => ({
+          daily: [],
+          totals: { seconds: 3600, books: 2, pages: 10 },
+        }),
+        getReadingPeriodStats: async () => ({
+          summary: { seconds: 3600, days: 1, books: 2, pages: 10 },
+          rankings: [],
+          breakdown: [],
+          daily: [],
+        }),
         getBookQuarterHourDurations: async () => [
           {
             quarter,
