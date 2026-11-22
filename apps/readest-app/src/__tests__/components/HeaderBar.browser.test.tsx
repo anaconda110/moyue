@@ -188,10 +188,16 @@ it.each([
   fireEvent.click(screen.getByRole('button', { name: 'View Options' }));
   const menu = container.querySelector('.view-menu') as HTMLElement;
   const toggle = screen.getByRole('button', { name: 'View Options' });
-  const endGap = width - menu.getBoundingClientRect().right;
+  const menuRect = menu.getBoundingClientRect();
+  const toggleRect = toggle.getBoundingClientRect();
+  const endGap = width - menuRect.right;
   expect(endGap).toBeGreaterThanOrEqual(16);
-  expect(endGap).toBeLessThanOrEqual(20);
-  expect(menu.getBoundingClientRect().top).toBeCloseTo(toggle.getBoundingClientRect().bottom + 6);
+  // From `sm` up the AI entry sits between the toggle and the window buttons,
+  // so the menu hangs 36px past its toggle instead of reaching the edge. Below
+  // `sm` the toggle is still the right-most control.
+  expect(menuRect.right - toggleRect.right).toBeCloseTo(36);
+  if (width < 640) expect(endGap).toBeLessThanOrEqual(20);
+  expect(menuRect.top).toBeCloseTo(toggleRect.bottom + 6);
   const overlay = container.querySelector('.overlay') as HTMLElement;
   expect(getComputedStyle(overlay).position).toBe('fixed');
   const outside = document.elementFromPoint(16, 880) as HTMLElement;
