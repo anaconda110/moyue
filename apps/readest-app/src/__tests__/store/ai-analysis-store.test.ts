@@ -4,16 +4,20 @@ import type { BookDoc } from '@/libs/document';
 import type { AnalysisRunContext } from '@/services/ai/analysisService';
 import { DEFAULT_AI_SETTINGS } from '@/services/ai/constants';
 import type { AIAnalysisReport, AISettings } from '@/services/ai/types';
+import type { AppService } from '@/types/system';
 
-const { generateAnalysisMock, importReportsMock, aiStoreMock } = vi.hoisted(() => ({
-  generateAnalysisMock: vi.fn(),
-  importReportsMock: vi.fn(),
-  aiStoreMock: {
-    saveAnalysisReport: vi.fn(),
-    getAnalysisReports: vi.fn(),
-    deleteAnalysisReport: vi.fn(),
-  },
-}));
+const { generateAnalysisMock, importReportsMock, loadDatasetMock, aiStoreMock } = vi.hoisted(
+  () => ({
+    generateAnalysisMock: vi.fn(),
+    importReportsMock: vi.fn(),
+    loadDatasetMock: vi.fn(),
+    aiStoreMock: {
+      saveAnalysisReport: vi.fn(),
+      getAnalysisReports: vi.fn(),
+      deleteAnalysisReport: vi.fn(),
+    },
+  }),
+);
 
 vi.mock('@/services/ai/analysisService', () => ({
   generateAnalysis: generateAnalysisMock,
@@ -24,6 +28,7 @@ vi.mock('@/services/ai/analysisService', () => ({
 
 vi.mock('@/services/ai/import/aiNovelReaderV2', () => ({
   importAiNovelReaderV2Reports: importReportsMock,
+  loadAiNovelReaderV2Dataset: loadDatasetMock,
 }));
 
 vi.mock('@/services/ai/storage/aiStore', () => ({ aiStore: aiStoreMock }));
@@ -132,12 +137,14 @@ describe('aiAnalysisStore', () => {
     expect(generateAnalysisMock).toHaveBeenCalledTimes(1);
   });
 
-  test('imports bundled summaries before loading persisted reports', async () => {
+  test('imports a local dataset before loading persisted reports', async () => {
     const order: string[] = [];
     const toc = [{ id: 0, label: '第1章', href: 'chapter-1.xhtml', index: 0 }];
+    const dataset = { bookHash: 'book-hash', reports: [] };
+    loadDatasetMock.mockResolvedValue(dataset);
     importReportsMock.mockImplementation(async () => {
       order.push('import');
-      return 1023;
+      return 3;
     });
     aiStoreMock.getAnalysisReports.mockImplementation(async () => {
       order.push('load');
@@ -147,14 +154,22 @@ describe('aiAnalysisStore', () => {
 
     await useAIAnalysisStore
       .getState()
-      .loadReports('book-hash', { bookTitle: '灵境行者', authorName: '卖报小郎君', toc });
+      .loadReports(
+        'book-hash',
+        { bookTitle: '合成书', authorName: '测试作者', toc },
+        {} as AppService,
+      );
 
-    expect(importReportsMock).toHaveBeenCalledWith({
-      bookHash: 'book-hash',
-      bookTitle: '灵境行者',
-      authorName: '卖报小郎君',
-      toc,
-    });
+    expect(loadDatasetMock).toHaveBeenCalledWith({}, 'book-hash');
+    expect(importReportsMock).toHaveBeenCalledWith(
+      {
+        bookHash: 'book-hash',
+        bookTitle: '合成书',
+        authorName: '测试作者',
+        toc,
+      },
+      { dataset },
+    );
     expect(order).toEqual(['import', 'load']);
   });
 

@@ -45,3 +45,17 @@ AI Reader V2 的核心不是章节摘要，而是把整本书拆成可计算的 
 每章一次模型调用，长章节会截断中段（保留开头与结尾）。批量分析默认串行，
 失败时停止并在面板中给出错误，已完成的章节不会丢失。所有知识库数据只写入
 本机 IndexedDB，不参与 Readest 同步。
+
+## 历史摘要导入（本地数据集）
+
+`ai-novel-reader-v2` 的历史导出是用户数据，**不随应用打包**。需要导入时，把导出
+JSON 放到应用数据目录：
+
+```text
+Data/ai-novel-reader-v2/<bookHash>.json
+```
+
+应用在打开匹配版本的书时读取该文件；文件缺失、格式错误或 bookHash 不匹配时
+静默跳过。仓库内的迁移脚本默认输出到
+`apps/readest-app/.local/ai-novel-reader-v2/<bookHash>.json`（已被 gitignore），
+不会再把数据写回 `src/data`。

@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import i18n from '@/i18n/i18n';
+import { useEnv } from '@/context/EnvContext';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { BookDoc } from '@/libs/document';
@@ -91,6 +92,7 @@ export function AIAnalysisWorkspace({
   onSourceClick,
 }: AIAnalysisWorkspaceProps) {
   const _ = useTranslation();
+  const { appService } = useEnv();
   const reports = useAIAnalysisStore((state) => state.reports);
   const loadedBooks = useAIAnalysisStore((state) => state.loadedBooks);
   const loadingBooks = useAIAnalysisStore((state) => state.loadingBooks);
@@ -111,12 +113,16 @@ export function AIAnalysisWorkspace({
 
   useEffect(() => {
     if (!bookHash || !bookDoc) return;
-    void loadReports(bookHash, {
-      bookTitle,
-      authorName,
-      toc: bookDoc.toc ?? [],
-    });
-  }, [authorName, bookDoc, bookHash, bookTitle, loadReports]);
+    void loadReports(
+      bookHash,
+      {
+        bookTitle,
+        authorName,
+        toc: bookDoc.toc ?? [],
+      },
+      appService,
+    );
+  }, [appService, authorName, bookDoc, bookHash, bookTitle, loadReports]);
 
   useEffect(() => {
     setSelectedReportId(currentReportId);
