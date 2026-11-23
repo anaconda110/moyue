@@ -9,6 +9,9 @@ permissions: read-all
 
 jobs:
   get-release:
+    # The unsigned workflow publishes with this marker in the body;
+    # without the guard this trigger would fail on the missing secrets.
+    if: ${{ github.event_name != 'release' || !contains(github.event.release.body || '', '<!-- unsigned-build -->') }}
     permissions:
       contents: read
     runs-on: ubuntu-latest

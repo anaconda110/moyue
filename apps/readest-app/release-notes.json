@@ -1,5 +1,14 @@
 {
   "releases": {
+    "0.12.22": {
+      "date": "2026-11-23",
+      "notes": [
+        "AI reading workspace: chapter analysis, knowledge graph, timeline and encyclopedia in the notebook panel",
+        "Reading statistics: natural week, month and year insights with faster lifetime aggregation",
+        "Privacy: the historical AI chapter-summary export is no longer bundled; it loads from local user data instead",
+        "Release: GitHub Actions now runs the full check suite on recovery/** pushes, and builds unsigned Linux and Windows packages for this release"
+      ]
+    },
     "0.12.21": {
       "date": "2026-11-14",
       "notes": [
