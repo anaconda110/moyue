@@ -7,26 +7,14 @@
 name: Release Moyue (unsigned)
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version in apps/readest-app/package.json
-        required: true
-        default: '0.12.22'
-      tag:
-        description: Release tag
-        required: true
-        default: 'v0.12.22'
-      ref:
-        description: Branch or commit to build
-        required: true
-        default: 'recovery/ai-stats'
+  push:
+    tags: ['v*']
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-unsigned-${{ inputs.tag }}
+  group: release-unsigned-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -40,15 +28,13 @@ jobs:
       version: ${{ steps.release.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.ref }}
-      - name: verify the requested version
+      - name: verify the tag matches package.json
         run: |
           set -euo pipefail
           actual=$(node -p "require('./apps/readest-app/package.json').version")
-          expected='${{ inputs.version }}'
+          expected="${GITHUB_REF_NAME#v}"
           if [ "$actual" != "$expected" ]; then
-            echo "::error::package.json is $actual, expected $expected"
+            echo "::error::package.json is $actual, tag is $GITHUB_REF_NAME"
             exit 1
           fi
       - name: create or reuse the draft release
@@ -57,7 +43,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          tag='${{ inputs.tag }}'
+          tag="$GITHUB_REF_NAME"
           notes='Unsigned Linux and Windows build. Installers are not code-signed or notarized, and automatic updates are not available from this release.
 
           <!-- unsigned-build -->'
@@ -66,13 +52,14 @@ jobs:
               --title "Moyue $tag (unsigned build)" --notes "$notes"
           else
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
-              --target '${{ inputs.ref }}' --draft \
+              --target "$GITHUB_SHA" --draft \
               --title "Moyue $tag (unsigned build)" --notes "$notes"
           fi
           release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .id)
           echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          version=$(node -p "require('./apps/readest-app/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
   build:
     needs: prepare
@@ -97,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.sha }}
           submodules: recursive
 
       - name: setup pnpm
