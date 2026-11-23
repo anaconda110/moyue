@@ -1,5 +1,12 @@
 {
   "releases": {
+    "0.12.23": {
+      "date": "2026-11-23",
+      "notes": [
+        "Same feature set as 0.12.22: AI reading workspace, reading statistics, and the AI summary export loaded from local user data",
+        "Release: first unsigned Linux (AppImage) and Windows (NSIS) packages built by GitHub Actions"
+      ]
+    },
     "0.12.22": {
       "date": "2026-11-23",
       "notes": [
