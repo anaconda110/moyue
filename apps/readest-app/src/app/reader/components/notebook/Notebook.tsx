@@ -26,6 +26,7 @@ import {
   useNotebookDocumentCoordinator,
 } from '../../hooks/useNotebookDocumentCoordinator';
 import AIAssistant from './AIAssistant';
+import AnalysisView from './AnalysisView';
 import DictionaryView from './DictionaryView';
 import NotebookHeader from './Header';
 import NotebookEditor from './NotebookEditor';
@@ -292,6 +293,8 @@ const Notebook: React.FC = () => {
           <div className='flex min-h-0 flex-1 flex-col'>
             <AIAssistant key={activeConversationId ?? 'new'} bookKey={sideBarBookKey} />
           </div>
+        ) : notebookActiveTab === 'analysis' ? (
+          <AnalysisView key={sideBarBookKey} bookKey={sideBarBookKey} />
         ) : notebookActiveTab === 'dictionary' ? (
           <DictionaryView />
         ) : notebookActiveTab === 'xray' ? (

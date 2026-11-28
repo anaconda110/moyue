@@ -1,5 +1,5 @@
 import type { IconType } from 'react-icons';
-import { LuBookA, LuScanSearch } from 'react-icons/lu';
+import { LuBookA, LuScanSearch, LuSparkles } from 'react-icons/lu';
 import { PiNotePencil, PiRobot } from 'react-icons/pi';
 import { RiQuillPenLine } from 'react-icons/ri';
 
@@ -28,4 +28,10 @@ export const getNotebookTabs = (_: TranslationFunc): Record<NotebookTab, Noteboo
     settings: { id: 'settings.language.dictionaries.manage', label: _('Manage Dictionaries') },
   },
   xray: { label: _('X-Ray'), icon: LuScanSearch, title: _('X-Ray'), titleIcon: LuScanSearch },
+  analysis: {
+    label: _('Analysis'),
+    icon: LuSparkles,
+    title: _('Analysis'),
+    titleIcon: LuSparkles,
+  },
 });
