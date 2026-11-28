@@ -26,13 +26,16 @@ import {
   useNotebookDocumentCoordinator,
 } from '../../hooks/useNotebookDocumentCoordinator';
 import AIAssistant from './AIAssistant';
-import AnalysisView from './AnalysisView';
 import DictionaryView from './DictionaryView';
 import NotebookHeader from './Header';
 import NotebookEditor from './NotebookEditor';
 import NotebookTabNavigation from './NotebookTabNavigation';
 
 const XRayView = dynamic(() => import('./XRayView'), { ssr: false });
+// Same reason as X-Ray: the analysis view pulls in the AI SDK, which reaches
+// Node-only code (@vercel/oidc's `os.platform`) and cannot load in a browser
+// test or on the server render path.
+const AnalysisView = dynamic(() => import('./AnalysisView'), { ssr: false });
 
 const MIN_NOTEBOOK_WIDTH = 0.15;
 const MAX_NOTEBOOK_WIDTH = 0.45;
