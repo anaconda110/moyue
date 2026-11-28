@@ -35,11 +35,19 @@ describe('NotebookTabNavigation design regression', () => {
     expect(tabNames()).toEqual(['Notes', 'Dictionary']);
   });
 
-  it('shows the Notes, AI and Dictionary tabs when AI is enabled', () => {
+  it('shows the Notes, AI, Analysis and Dictionary tabs when AI is enabled', () => {
     h.aiEnabled = true;
     render(<NotebookTabNavigation activeTab='notes' onTabChange={vi.fn()} />);
 
-    expect(tabNames()).toEqual(['Notes', 'AI', 'Dictionary']);
+    expect(tabNames()).toEqual(['Notes', 'AI', 'Analysis', 'Dictionary']);
+  });
+
+  // Analysis generation needs AI, so the tab follows the AI tab; it stays put
+  // while open so turning AI off does not strand the user on a hidden tab.
+  it('keeps the Analysis tab while it is the open tab', () => {
+    render(<NotebookTabNavigation activeTab='analysis' onTabChange={vi.fn()} />);
+
+    expect(tabNames()).toEqual(['Notes', 'Analysis', 'Dictionary']);
   });
 
   // The active tab is shown by its background alone; screen readers need the

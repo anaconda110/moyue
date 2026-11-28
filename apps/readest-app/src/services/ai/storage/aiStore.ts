@@ -1,16 +1,24 @@
-import { TextChunk, ScoredChunk, BookIndexMeta, AIConversation, AIMessage } from '../types';
+import {
+  TextChunk,
+  ScoredChunk,
+  BookIndexMeta,
+  AIConversation,
+  AIMessage,
+  AIAnalysisReport,
+} from '../types';
 import { aiLogger } from '../logger';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const lunr = require('lunr') as typeof import('lunr');
 
 const DB_NAME = 'readest-ai';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const CHUNKS_STORE = 'chunks';
 const META_STORE = 'bookMeta';
 const BM25_STORE = 'bm25Indices';
 const CONVERSATIONS_STORE = 'conversations';
 const MESSAGES_STORE = 'messages';
+const ANALYSIS_REPORTS_STORE = 'analysisReports';
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
@@ -32,6 +40,7 @@ class AIStore {
   private indexCache = new Map<string, lunr.Index>();
   private metaCache = new Map<string, BookIndexMeta>();
   private conversationCache = new Map<string, AIConversation[]>();
+  private analysisReportCache = new Map<string, AIAnalysisReport>();
 
   async recoverFromError(): Promise<void> {
     if (this.db) {
@@ -46,6 +55,7 @@ class AIStore {
     this.indexCache.clear();
     this.metaCache.clear();
     this.conversationCache.clear();
+    this.analysisReportCache.clear();
     await this.openDB();
   }
 
@@ -90,6 +100,12 @@ class AIStore {
         if (!db.objectStoreNames.contains(MESSAGES_STORE)) {
           const msgStore = db.createObjectStore(MESSAGES_STORE, { keyPath: 'id' });
           msgStore.createIndex('conversationId', 'conversationId', { unique: false });
+        }
+
+        // v4: durable chapter/book analysis reports
+        if (!db.objectStoreNames.contains(ANALYSIS_REPORTS_STORE)) {
+          const reportStore = db.createObjectStore(ANALYSIS_REPORTS_STORE, { keyPath: 'id' });
+          reportStore.createIndex('bookHash', 'bookHash', { unique: false });
         }
       };
     });
@@ -224,12 +240,14 @@ class AIStore {
     queryEmbedding: number[],
     topK: number,
     maxPage?: number,
+    sectionIndex?: number,
   ): Promise<ScoredChunk[]> {
     const chunks = await this.getChunks(bookHash);
     const beforeFilter = chunks.filter((c) => c.embedding).length;
     const scored: ScoredChunk[] = [];
     for (const chunk of chunks) {
       if (maxPage !== undefined && chunk.pageNumber > maxPage) continue;
+      if (sectionIndex !== undefined && chunk.sectionIndex !== sectionIndex) continue;
       if (!chunk.embedding) continue;
       scored.push({
         ...chunk,
@@ -250,6 +268,7 @@ class AIStore {
     query: string,
     topK: number,
     maxPage?: number,
+    sectionIndex?: number,
   ): Promise<ScoredChunk[]> {
     const index = await this.loadBM25Index(bookHash);
     if (!index) return [];
@@ -262,6 +281,7 @@ class AIStore {
         const chunk = chunkMap.get(result.ref);
         if (!chunk) continue;
         if (maxPage !== undefined && chunk.pageNumber > maxPage) continue;
+        if (sectionIndex !== undefined && chunk.sectionIndex !== sectionIndex) continue;
         scored.push({ ...chunk, score: result.score, searchMethod: 'bm25' });
         if (scored.length >= topK) break;
       }
@@ -278,10 +298,13 @@ class AIStore {
     query: string,
     topK: number,
     maxPage?: number,
+    sectionIndex?: number,
   ): Promise<ScoredChunk[]> {
     const [vectorResults, bm25Results] = await Promise.all([
-      queryEmbedding ? this.vectorSearch(bookHash, queryEmbedding, topK * 2, maxPage) : [],
-      this.bm25Search(bookHash, query, topK * 2, maxPage),
+      queryEmbedding
+        ? this.vectorSearch(bookHash, queryEmbedding, topK * 2, maxPage, sectionIndex)
+        : [],
+      this.bm25Search(bookHash, query, topK * 2, maxPage, sectionIndex),
     ]);
     const normalize = (results: ScoredChunk[], weight: number) => {
       if (results.length === 0) return [];
@@ -447,6 +470,118 @@ class AIStore {
         resolve(messages);
       };
       req.onerror = () => reject(req.error);
+    });
+  }
+
+  // chapter/book analysis report persistence
+
+  async saveAnalysisReport(report: AIAnalysisReport): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ANALYSIS_REPORTS_STORE, 'readwrite');
+      tx.objectStore(ANALYSIS_REPORTS_STORE).put(report);
+      tx.oncomplete = () => {
+        this.analysisReportCache.set(report.id, report);
+        resolve();
+      };
+      tx.onerror = () => {
+        aiLogger.store.error('saveAnalysisReport', tx.error?.message || 'TX error');
+        reject(tx.error);
+      };
+    });
+  }
+
+  async saveAnalysisReportsIfAbsent(
+    reports: AIAnalysisReport[],
+    options: { replaceFailed?: boolean } = {},
+  ): Promise<AIAnalysisReport[]> {
+    if (reports.length === 0) return [];
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ANALYSIS_REPORTS_STORE, 'readwrite');
+      const store = tx.objectStore(ANALYSIS_REPORTS_STORE);
+      const inserted: AIAnalysisReport[] = [];
+      const existingRequest = store.getAll();
+      existingRequest.onsuccess = () => {
+        const existingReports = new Map(
+          (existingRequest.result as AIAnalysisReport[]).map((report) => [report.id, report]),
+        );
+        for (const report of reports) {
+          const existing = existingReports.get(report.id);
+          const replaceEmptyFailure =
+            options.replaceFailed === true &&
+            existing?.status === 'error' &&
+            existing.content.trim().length === 0;
+          if (existing && !replaceEmptyFailure) continue;
+          store.put(report);
+          existingReports.set(report.id, report);
+          inserted.push(report);
+        }
+      };
+      tx.oncomplete = () => {
+        for (const report of inserted) this.analysisReportCache.set(report.id, report);
+        resolve(inserted);
+      };
+      tx.onerror = () => {
+        aiLogger.store.error('saveAnalysisReportsIfAbsent', tx.error?.message || 'TX error');
+        reject(tx.error);
+      };
+      tx.onabort = () => {
+        aiLogger.store.error('saveAnalysisReportsIfAbsent', tx.error?.message || 'TX aborted');
+        reject(tx.error);
+      };
+    });
+  }
+
+  async getAnalysisReport(id: string): Promise<AIAnalysisReport | null> {
+    if (this.analysisReportCache.has(id)) return this.analysisReportCache.get(id)!;
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const req = db
+        .transaction(ANALYSIS_REPORTS_STORE, 'readonly')
+        .objectStore(ANALYSIS_REPORTS_STORE)
+        .get(id);
+      req.onsuccess = () => {
+        const report = req.result as AIAnalysisReport | undefined;
+        if (report) this.analysisReportCache.set(id, report);
+        resolve(report || null);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async getAnalysisReports(bookHash: string): Promise<AIAnalysisReport[]> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const req = db
+        .transaction(ANALYSIS_REPORTS_STORE, 'readonly')
+        .objectStore(ANALYSIS_REPORTS_STORE)
+        .index('bookHash')
+        .getAll(bookHash);
+      req.onsuccess = () => {
+        const reports = (req.result as AIAnalysisReport[]).sort(
+          (a, b) => b.updatedAt - a.updatedAt,
+        );
+        for (const report of reports) this.analysisReportCache.set(report.id, report);
+        resolve(reports);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async deleteAnalysisReport(id: string): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ANALYSIS_REPORTS_STORE, 'readwrite');
+      tx.objectStore(ANALYSIS_REPORTS_STORE).delete(id);
+      tx.oncomplete = () => {
+        this.analysisReportCache.delete(id);
+        resolve();
+      };
+      tx.onerror = () => {
+        aiLogger.store.error('deleteAnalysisReport', tx.error?.message || 'TX error');
+        reject(tx.error);
+      };
     });
   }
 }

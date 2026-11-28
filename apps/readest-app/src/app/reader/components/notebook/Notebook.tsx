@@ -32,6 +32,10 @@ import NotebookEditor from './NotebookEditor';
 import NotebookTabNavigation from './NotebookTabNavigation';
 
 const XRayView = dynamic(() => import('./XRayView'), { ssr: false });
+// Same reason as X-Ray: the analysis view pulls in the AI SDK, which reaches
+// Node-only code (@vercel/oidc's `os.platform`) and cannot load in a browser
+// test or on the server render path.
+const AnalysisView = dynamic(() => import('./AnalysisView'), { ssr: false });
 
 const MIN_NOTEBOOK_WIDTH = 0.15;
 const MAX_NOTEBOOK_WIDTH = 0.45;
@@ -292,6 +296,8 @@ const Notebook: React.FC = () => {
           <div className='flex min-h-0 flex-1 flex-col'>
             <AIAssistant key={activeConversationId ?? 'new'} bookKey={sideBarBookKey} />
           </div>
+        ) : notebookActiveTab === 'analysis' ? (
+          <AnalysisView key={sideBarBookKey} bookKey={sideBarBookKey} />
         ) : notebookActiveTab === 'dictionary' ? (
           <DictionaryView />
         ) : notebookActiveTab === 'xray' ? (
