@@ -1,9 +1,8 @@
-import { embed, embedMany } from 'ai';
 import { aiStore } from './storage/aiStore';
 import { chunkSection, extractTextFromDocument } from './utils/chunker';
 import { withRetryAndTimeout, AI_TIMEOUTS, AI_RETRY_CONFIGS } from './utils/retry';
-import { getAIProvider } from './providers';
 import { aiLogger } from './logger';
+import { createLocalEmbeddingModel } from './rag/LocalEmbeddingModel';
 import type { AISettings, TextChunk, ScoredChunk, EmbeddingProgress, BookIndexMeta } from './types';
 
 interface SectionItem {
@@ -61,6 +60,7 @@ export async function indexBook(
   bookHash: string,
   settings: AISettings,
   onProgress?: (progress: EmbeddingProgress) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const startTime = Date.now();
   const title = extractTitle(bookDoc.metadata);
@@ -71,7 +71,6 @@ export async function indexBook(
   }
 
   aiLogger.rag.indexStart(bookHash, title);
-  const provider = getAIProvider(settings);
   const sections = bookDoc.sections || [];
   const toc = bookDoc.toc || [];
 
@@ -85,7 +84,23 @@ export async function indexBook(
   });
 
   try {
-    onProgress?.({ current: 0, total: 1, phase: 'chunking' });
+    const embeddingModel = createLocalEmbeddingModel(
+      settings.ragEngine,
+      settings.ragFallback ?? true,
+      settings.ragCacheLimitMB,
+    );
+    onProgress?.({ current: 0, total: 1, phase: 'preparing' });
+    await embeddingModel.prepare({
+      signal,
+      onProgress: (event) => {
+        const phase = normalizePreparePhase(event.phase);
+        onProgress?.({ current: event.current, total: event.total, phase });
+      },
+    });
+    signal?.throwIfAborted();
+    onProgress?.({ current: 1, total: 1, phase: 'preparing' });
+
+    onProgress?.({ current: 0, total: sections.length, phase: 'chunking' });
     aiLogger.rag.indexProgress('chunking', 0, sections.length);
     const allChunks: TextChunk[] = [];
 
@@ -107,45 +122,68 @@ export async function indexBook(
       } catch (e) {
         aiLogger.chunker.error(i, (e as Error).message);
       }
+      onProgress?.({ current: i + 1, total: sections.length, phase: 'chunking' });
+      aiLogger.rag.indexProgress('chunking', i + 1, sections.length);
     }
 
     aiLogger.chunker.complete(bookHash, allChunks.length);
 
     if (allChunks.length === 0) {
-      aiLogger.rag.indexComplete(bookHash, 0, Date.now() - startTime);
-      return;
+      throw new Error('No extractable text was found in this book.');
     }
 
     onProgress?.({ current: 0, total: allChunks.length, phase: 'embedding' });
-    const embeddingModelName =
-      settings.provider === 'ollama'
-        ? settings.ollamaEmbeddingModel
-        : settings.provider === 'openrouter'
-          ? settings.openrouterEmbeddingModel || 'text-embedding-3-small'
-          : settings.aiGatewayEmbeddingModel || 'text-embedding-3-small';
+    const embeddingModelName = embeddingModel.id;
     aiLogger.embedding.start(embeddingModelName, allChunks.length);
 
-    const texts = allChunks.map((c) => c.text);
-    try {
-      const { embeddings } = await withRetryAndTimeout(
-        () =>
-          embedMany({
-            model: provider.getEmbeddingModel(),
-            values: texts,
-          }),
-        AI_TIMEOUTS.EMBEDDING_BATCH,
-        AI_RETRY_CONFIGS.EMBEDDING,
-      );
+    const batchSize = Math.max(1, embeddingModel.batchSize ?? 16);
+    let embeddingDimension: number | null = null;
+    let embeddedCount = 0;
 
-      for (let i = 0; i < allChunks.length; i++) {
-        allChunks[i]!.embedding = embeddings[i];
+    for (let offset = 0; offset < allChunks.length; offset += batchSize) {
+      const batchChunks = allChunks.slice(offset, offset + batchSize);
+      const batchIndex = Math.floor(offset / batchSize) + 1;
+      try {
+        const embeddings = await withRetryAndTimeout(
+          () =>
+            embeddingModel.embed(
+              batchChunks.map((chunk) => chunk.text),
+              { signal },
+            ),
+          AI_TIMEOUTS.INDEX_EMBEDDING_BATCH,
+          AI_RETRY_CONFIGS.INDEX_EMBEDDING,
+        );
+
+        if (embeddings.length !== batchChunks.length) {
+          throw new Error(
+            `Embedding batch ${batchIndex} returned ${embeddings.length} vectors for ${batchChunks.length} chunks.`,
+          );
+        }
+
+        for (let i = 0; i < embeddings.length; i++) {
+          const embedding = embeddings[i]!;
+          if (!Array.isArray(embedding) || embedding.length === 0) {
+            throw new Error(`Embedding batch ${batchIndex} returned an empty vector.`);
+          }
+          if (embeddingDimension === null) {
+            embeddingDimension = embedding.length;
+          } else if (embedding.length !== embeddingDimension) {
+            throw new Error(
+              `Embedding dimension changed from ${embeddingDimension} to ${embedding.length} in batch ${batchIndex}.`,
+            );
+          }
+          batchChunks[i]!.embedding = embedding;
+        }
+      } catch (e) {
+        aiLogger.embedding.error(`batch ${batchIndex}`, (e as Error).message);
+        throw e;
       }
-      onProgress?.({ current: allChunks.length, total: allChunks.length, phase: 'embedding' });
-      aiLogger.embedding.complete(embeddings.length, allChunks.length, embeddings[0]?.length || 0);
-    } catch (e) {
-      aiLogger.embedding.error('batch', (e as Error).message);
-      throw e;
+
+      embeddedCount += batchChunks.length;
+      onProgress?.({ current: embeddedCount, total: allChunks.length, phase: 'embedding' });
+      aiLogger.embedding.batch(embeddedCount, allChunks.length);
     }
+    aiLogger.embedding.complete(embeddedCount, allChunks.length, embeddingDimension || 0);
 
     onProgress?.({ current: 0, total: 2, phase: 'indexing' });
     aiLogger.store.saveChunks(bookHash, allChunks.length);
@@ -181,28 +219,35 @@ export async function hybridSearch(
   settings: AISettings,
   topK = 10,
   maxPage?: number,
+  sectionIndex?: number,
 ): Promise<ScoredChunk[]> {
   aiLogger.search.query(query, maxPage);
-  const provider = getAIProvider(settings);
   let queryEmbedding: number[] | null = null;
 
   try {
-    // use AI SDK embed with provider's embedding model
-    const { embedding } = await withRetryAndTimeout(
-      () =>
-        embed({
-          model: provider.getEmbeddingModel(),
-          value: query,
-        }),
+    const embeddingModel = createLocalEmbeddingModel(
+      settings.ragEngine,
+      settings.ragFallback ?? true,
+      settings.ragCacheLimitMB,
+    );
+    const [embedding] = await withRetryAndTimeout(
+      () => embeddingModel.embed([query]),
       AI_TIMEOUTS.EMBEDDING_SINGLE,
       AI_RETRY_CONFIGS.EMBEDDING,
     );
-    queryEmbedding = embedding;
+    queryEmbedding = embedding ?? null;
   } catch {
     // bm25 only fallback
   }
 
-  const results = await aiStore.hybridSearch(bookHash, queryEmbedding, query, topK, maxPage);
+  const results = await aiStore.hybridSearch(
+    bookHash,
+    queryEmbedding,
+    query,
+    topK,
+    maxPage,
+    sectionIndex,
+  );
   aiLogger.search.hybridResults(results.length, [...new Set(results.map((r) => r.searchMethod))]);
   return results;
 }
@@ -210,4 +255,19 @@ export async function hybridSearch(
 export async function clearBookIndex(bookHash: string): Promise<void> {
   aiLogger.store.clear(bookHash);
   await aiStore.clearBook(bookHash);
+}
+
+function normalizePreparePhase(phase?: string): EmbeddingProgress['phase'] {
+  switch (phase) {
+    case 'loading-model':
+      return 'loading-model';
+    case 'chunking':
+      return 'chunking';
+    case 'embedding':
+      return 'embedding';
+    case 'indexing':
+      return 'indexing';
+    default:
+      return 'preparing';
+  }
 }

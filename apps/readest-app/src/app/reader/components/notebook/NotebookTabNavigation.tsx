@@ -30,6 +30,9 @@ const NotebookTabNavigation: React.FC<NotebookTabNavigationProps> = ({
   );
   const tabs: NotebookTab[] = ['notes'];
   if (aiEnabled) tabs.push('ai');
+  // Analysis needs AI for generation; keep it visible while it is the open
+  // tab so disabling AI does not strand the user on a hidden tab.
+  if (aiEnabled || activeTab === 'analysis') tabs.push('analysis');
   tabs.push('dictionary');
   if (xrayEnabled || activeTab === 'xray') tabs.push('xray');
   const tabInfo = getNotebookTabs(_);

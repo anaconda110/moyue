@@ -11,6 +11,7 @@ const fakeLegacy: RetrievalBackend = {
   isIndexed: vi.fn(async () => true),
   indexBook: vi.fn(async () => {}),
   clearBook: vi.fn(async () => {}),
+  searchBook: vi.fn(async () => ({ status: 'ok' as const, results: [] })),
 };
 
 const fakeReedy: RetrievalBackend = {
@@ -18,6 +19,7 @@ const fakeReedy: RetrievalBackend = {
   isIndexed: vi.fn(async () => true),
   indexBook: vi.fn(async () => {}),
   clearBook: vi.fn(async () => {}),
+  searchBook: vi.fn(async () => ({ status: 'ok' as const, results: [] })),
 };
 
 function settingsWith(reedyEnabled: boolean): AISettings {

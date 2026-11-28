@@ -5,6 +5,44 @@ import type { ReedySourceStore } from './reedySourceStore';
 
 export type RetrievalBackendKind = 'legacy-idb' | 'reedy';
 
+export type SearchStatus = 'ok' | 'not_indexed' | 'empty_index' | 'stale_index' | 'degraded';
+
+export type BackendIndexStatus = 'not_indexed' | 'indexing' | 'indexed' | 'failed' | 'empty_index';
+
+export interface IndexStats {
+  /** True only when retrieval can use a complete, non-empty index. */
+  indexed: boolean;
+  status: BackendIndexStatus;
+  chunkCount: number;
+  embeddingModel: string;
+  embeddingDim: number;
+  error?: string | null;
+}
+
+export interface SearchBookResult {
+  id: string;
+  text: string;
+  chapterTitle: string | null;
+  sectionIndex: number;
+  score: number;
+  /** Reedy passages expose a precise CFI; legacy chunks only expose a page. */
+  cfi?: string;
+  pageNumber?: number;
+}
+
+export interface SearchBookResponse {
+  results: SearchBookResult[];
+  status: SearchStatus;
+  reason?: string;
+}
+
+export interface SearchOptions {
+  topK: number;
+  spoilerBoundPosition?: number;
+  /** Exact chapter (spine section) scope for one-shot chapter analysis. */
+  sectionIndex?: number;
+}
+
 export interface BackendIndexOptions {
   onProgress?: (progress: EmbeddingProgress) => void;
   signal?: AbortSignal;
@@ -28,8 +66,13 @@ export interface RetrievalBackend {
   readonly kind: RetrievalBackendKind;
 
   isIndexed(bookHash: string): Promise<boolean>;
+  /** Metadata used for size-aware retrieval without opening the full corpus. */
+  getIndexStats?(bookHash: string): Promise<IndexStats | null>;
   indexBook(bookDoc: BookDoc, bookHash: string, options?: BackendIndexOptions): Promise<void>;
   clearBook(bookHash: string): Promise<void>;
+
+  /** User-facing semantic/keyword search used by the AI analysis panel. */
+  searchBook(query: string, bookHash: string, options: SearchOptions): Promise<SearchBookResponse>;
 
   /**
    * Legacy IDB path only. Returns top-K chunks the adapter folds into the
@@ -38,7 +81,7 @@ export interface RetrievalBackend {
   searchForSystemPrompt?(
     query: string,
     bookHash: string,
-    options: { topK: number; spoilerBoundPosition?: number },
+    options: SearchOptions,
   ): Promise<ScoredChunk[]>;
 
   /**
@@ -50,6 +93,7 @@ export interface RetrievalBackend {
     bookHash: string;
     turnId: string;
     sourceStore: ReedySourceStore;
+    sectionIndex?: number;
     spoilerBoundPosition?: number;
   }): Tool;
 }
