@@ -80,6 +80,8 @@ describe('AISettings Type', () => {
       spoilerProtection: false,
       maxContextChunks: 10,
       indexingMode: 'background',
+      ragEngine: DEFAULT_AI_SETTINGS.ragEngine,
+      topKDefault: DEFAULT_AI_SETTINGS.topKDefault,
     };
 
     expect(settings.enabled).toBe(true);
