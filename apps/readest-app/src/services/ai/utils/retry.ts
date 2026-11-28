@@ -71,6 +71,7 @@ export const AI_TIMEOUTS = {
   EMBEDDING_BATCH: 120_000, // 2min for batch embedding
   INDEX_EMBEDDING_BATCH: 60_000, // 1min for a bounded indexing batch
   CHAT_STREAM: 60_000, // 60s for chat response start
+  DIGEST_CALL: 180_000, // 3min for one chapter/volume/book digest completion
   HEALTH_CHECK: 5_000, // 5s for health check
   OLLAMA_CONNECT: 5_000, // 5s for ollama connection
 } as const;
